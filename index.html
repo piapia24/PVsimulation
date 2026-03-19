@@ -1,0 +1,2531 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>☀️ PV Calculator — Geometry &amp; Yield</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root {
+    --bg:       #060e18;
+    --bg2:      #0a1828;
+    --bg3:      #1a2d40;
+    --bg4:      #0f2744;
+    --border:   #1e3a5f;
+    --border2:  #334155;
+    --text:     #f1f5f9;
+    --text2:    #94a3b8;
+    --text3:    #475569;
+    --blue:     #3b82f6;
+    --blue2:    #60a5fa;
+    --yellow:   #f59e0b;
+    --green:    #22c55e;
+    --purple:   #9b59b6;
+    --orange:   #f97316;
+    --red:      #e74c3c;
+    --cyan:     #1abc9c;
+    --accent:   #2563eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+  }
+  /* ── Header ── */
+  #header {
+    background: linear-gradient(135deg, #0c1e35, #0f2744);
+    padding: 12px 20px;
+    border-bottom: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+  #header h1 { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+  #header .sub { color: var(--text3); font-size: 11px; margin-top: 2px; }
+  #header .kpi { text-align: right; }
+  #header .kpi .val { color: var(--yellow); font-size: 22px; font-weight: 800; font-family: 'Space Mono', monospace; }
+  #header .kpi .sub2 { color: var(--text3); font-size: 11px; }
+  /* ── Layout ── */
+  #layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: calc(100vh - 62px);
+  }
+  /* ── Sidebar ── */
+  #sidebar {
+    background: var(--bg2);
+    padding: 12px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    max-height: calc(100vh - 62px);
+  }
+  /* ── Sections ── */
+  .sec {
+    background: var(--bg3);
+    border-radius: 8px;
+    padding: 11px;
+    margin-bottom: 10px;
+  }
+  .sec-title {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 9px;
+  }
+  /* ── Slider ── */
+  .sl-row { margin-bottom: 9px; }
+  .sl-label { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .sl-label span:first-child { color: var(--text3); font-size: 11px; }
+  .sl-label .sl-val { font-size: 12px; font-weight: 700; font-family: 'Space Mono', monospace; }
+  input[type=range] { width: 100%; height: 4px; cursor: pointer; border-radius: 2px; }
+  /* ── Number stepper ── */
+  .num-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+  .num-row label { color: var(--text3); font-size: 11px; }
+  .num-ctrl { display: flex; align-items: center; gap: 4px; }
+  .num-btn {
+    width: 22px; height: 22px;
+    background: var(--bg4); border: 1px solid var(--border2);
+    color: var(--text2); border-radius: 4px; cursor: pointer;
+    font-size: 14px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .num-btn:hover { background: var(--border2); }
+  .num-val { color: var(--text); font-size: 13px; font-weight: 800; font-family: 'Space Mono', monospace; min-width: 30px; text-align: center; }
+  /* ── Tabs ── */
+  #tabs { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer;
+    font-weight: 700; font-size: 12px; font-family: 'Syne', sans-serif;
+    background: var(--bg4); color: var(--text3); transition: all .15s;
+  }
+  .tab-btn.active { background: var(--accent); color: white; }
+  .tab-btn:hover:not(.active) { background: var(--border2); }
+  /* ── Main panel ── */
+  #main { padding: 14px; overflow-y: auto; }
+  .panel-box {
+    background: var(--bg2);
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+  }
+  /* ── Bar chart ── */
+  .barchart { }
+  .barchart-title { color: var(--text2); font-size: 13px; margin-bottom: 8px; font-weight: 700; }
+  .barchart-bars { display: flex; align-items: flex-end; gap: 3px; height: 160px; }
+  .barchart-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+  .barchart-lbl-top { font-size: 9px; font-family: 'Space Mono', monospace; margin-bottom: 2px; }
+  .barchart-bar { width: 100%; border-radius: 2px 2px 0 0; transition: height .3s; }
+  .barchart-lbl-bot { font-size: 9px; color: var(--text3); margin-top: 3px; }
+  .barchart-unit { text-align: right; color: var(--text3); font-size: 11px; margin-top: 4px; }
+  /* ── Compass ── */
+  #compass-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  #compass-svg { cursor: crosshair; touch-action: none; user-select: none; }
+  #compass-input {
+    width: 70px; background: var(--bg3); border: 1px solid var(--border2);
+    color: var(--yellow); border-radius: 6px; padding: 5px 8px;
+    font-size: 13px; font-weight: 800; text-align: center;
+    font-family: 'Space Mono', monospace;
+  }
+  .az-btns { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+  .az-btn {
+    padding: 2px 7px; font-size: 10px; background: var(--bg4);
+    color: var(--text3); border: none; border-radius: 4px; cursor: pointer;
+  }
+  .az-btn.active { background: var(--accent); color: white; }
+  /* ── Map ── */
+  #map { height: 240px; border-radius: 7px; overflow: hidden; border: 1px solid var(--border); }
+  /* ── PVGIS panel ── */
+  #pvgis-box {
+    background: #0a1e0a; border: 1px solid #14532d;
+    border-radius: 8px; padding: 11px; margin-bottom: 10px;
+  }
+  #pvgis-box .sec-title { color: var(--green); }
+  #pvgis-btn {
+    width: 100%; padding: 8px; border-radius: 6px; border: none;
+    cursor: pointer; background: linear-gradient(135deg, #14532d, #166534);
+    color: white; font-weight: 700; font-size: 12px; font-family: 'Syne', sans-serif;
+    transition: opacity .15s;
+  }
+  #pvgis-btn:disabled { opacity: 0.5; cursor: wait; }
+  #pvgis-log { margin-top: 6px; background: #0a1e0a; border-radius: 5px; padding: 6px 8px; font-size: 10px; color: #4ade80; white-space: pre-wrap; line-height: 1.5; display: none; }
+  #pvgis-err { margin-top: 6px; background: #1a0a0a; border: 1px solid #7f1d1d; border-radius: 5px; padding: 8px; font-size: 10px; display: none; }
+  #pvgis-ok  { margin-top: 7px; background: #0a1e0f; border-radius: 5px; padding: 8px; display: none; }
+  /* ── Grid results ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .kpi-card { background: var(--bg4); border-radius: 8px; padding: 10px; text-align: center; }
+  .kpi-card .kpi-lbl { color: var(--text3); font-size: 10px; margin-bottom: 3px; }
+  .kpi-card .kpi-val { font-size: 14px; font-weight: 900; font-family: 'Space Mono', monospace; }
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { color: var(--text3); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--bg4); }
+  td { padding: 4px 6px; border-bottom: 1px solid #0f1e2e; }
+  tr:last-child td { font-weight: 800; background: #0f2744; }
+  /* ── Geo results ── */
+  #geo-results { background: var(--bg4); border-radius: 8px; padding: 11px; border: 1px solid var(--accent); }
+  .geo-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .geo-row .gl { color: var(--text3); font-size: 11px; }
+  .geo-row .gv { font-size: 11px; font-weight: 700; font-family: 'Space Mono', monospace; }
+  /* ── Calc steps ── */
+  .calc-step { background: var(--bg4); border-radius: 7px; padding: 8px 12px; border-left: 3px solid; margin-bottom: 6px; }
+  .calc-step .cs-title { font-size: 11px; font-weight: 700; margin-bottom: 2px; }
+  .calc-step .cs-formula { color: var(--text3); font-size: 11px; font-family: 'Space Mono', monospace; line-height: 1.4; }
+  .calc-step .cs-result { font-size: 12px; font-weight: 700; margin-top: 2px; font-family: 'Space Mono', monospace; }
+  /* ── Coord box ── */
+  .coord-box { background: var(--bg3); border-radius: 8px; padding: 11px; margin-bottom: 10px; }
+  .coord-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .coord-field label { color: var(--text3); font-size: 10px; display: block; margin-bottom: 2px; }
+  .coord-field input {
+    width: 100%; background: #0f1e2e; border: 1px solid rgba(59,130,246,.3);
+    color: var(--blue2); border-radius: 5px; padding: 5px 6px;
+    font-size: 12px; font-family: 'Space Mono', monospace;
+  }
+  .coord-apply {
+    width: 100%; padding: 6px; background: var(--accent); color: white; border: none;
+    border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 700; font-family: 'Syne', sans-serif;
+  }
+  .coord-display {
+    margin-top: 7px; background: #0a1520; border-radius: 5px; padding: 5px 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  /* ── Legend ── */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-dot { width: 12px; height: 3px; border-radius: 2px; }
+  .legend-lbl { color: var(--text3); font-size: 10px; }
+  /* ── Source badge ── */
+  .source-badge { font-size: 11px; font-weight: 700; }
+  .source-pvgis { color: var(--green); }
+  .source-model { color: var(--yellow); }
+  /* ── PVGIS params ── */
+  .pvgis-params { font-size: 10px; color: #1a4d2e; margin-bottom: 6px; line-height: 1.4; }
+  /* ── Select ── */
+  select {
+    background: var(--bg3); border: 1px solid var(--border2);
+    color: var(--text2); border-radius: 5px; padding: 4px 6px;
+    font-size: 12px; font-family: 'Syne', sans-serif; cursor: pointer;
+  }
+  /* ── Warning box ── */
+  .warn-box {
+    margin-top: 10px; background: #1c1508; border: 1px solid #78350f;
+    border-radius: 8px; padding: 8px 12px; font-size: 11px; color: #fbbf24;
+  }
+  /* ── Charts row ── */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .chart-card { background: var(--bg4); border-radius: 8px; padding: 12px; }
+  /* ── SVG containers ── */
+  .svg-wrap { background: var(--bg); border-radius: 8px; padding: 10px; }
+  svg text { font-family: 'Space Mono', monospace; }
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  /* ── Mobile ── */
+  @media (max-width: 768px) {
+    #layout { grid-template-columns: 1fr; }
+    #sidebar { max-height: none; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+  }
+  /* ── Fade-in ── */
+  .fade { animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div>
+    <h1><span data-i18n="appTitle">☀️ PV Calculator — Flat / Pitched Roof</span></h1>
+    <div class="sub"><span data-i18n="appSub">Geometry · Roof Slope (2 planes) · Annual Yield · PVGIS EU JRC</span></div>
+  </div>
+  <button id="lang-btn" onclick="toggleLang()" style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--bg4);border:1px solid var(--border2);color:var(--text2);border-radius:6px;cursor:pointer;font-size:12px;font-family:'Syne',sans-serif;font-weight:700;transition:background .15s" onmouseover="this.style.background='var(--border2)'" onmouseout="this.style.background='var(--bg4)'"><span id="lang-flag" style="font-size:16px">🇵🇱</span><span id="lang-label">Polski</span></button>
+      <div class="kpi">
+    <div class="val"><span id="hdr-total">0</span> <span id="hdr-unit" style="font-size:13px">kWh/yr</span></div>
+    <div class="sub2">
+      <span id="hdr-panels">0</span> ·
+      <span id="hdr-kwp">0</span> kWp ·
+      <span id="hdr-source" class="source-badge source-model">📊 Model</span>
+    </div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div id="layout">
+
+<!-- ════ SIDEBAR ════ -->
+<div id="sidebar">
+
+  <!-- MAP -->
+  <div class="coord-box">
+    <div style="color:#2ecc71;font-size:10px;font-weight:800;text-transform:uppercase;margin-bottom:8px">
+      <span data-i18n="secLocation">🗺 Location — click on map</span>
+    </div>
+    <div id="map"></div>
+    <div class="coord-grid" style="margin-top:8px">
+      <div class="coord-field">
+        <label>φ Szerokość (N)</label>
+        <input type="number" id="inp-lat" step="0.0001" value="52.2297"/>
+      </div>
+      <div class="coord-field">
+        <label>λ Długość (E)</label>
+        <input type="number" id="inp-lon" step="0.0001" value="21.0122"/>
+      </div>
+    </div>
+    <button class="coord-apply" onclick="applyCoords()"><span data-i18n="applyCoords">✓ Apply coordinates</span></button>
+    <div class="coord-display">
+      <span id="disp-lat" style="color:#2ecc71;font-size:11px;font-family:'Space Mono',monospace">52.22970°N</span>
+      <span id="disp-lon" style="color:var(--blue);font-size:11px;font-family:'Space Mono',monospace">21.01220°E</span>
+      <a id="gmap-link" href="https://maps.google.com/?q=52.2297,21.0122" target="_blank"
+         style="color:var(--text3);font-size:10px;text-decoration:none">🗺 GMaps</a>
+    </div>
+  </div>
+
+  <!-- AZIMUTH -->
+  <div class="sec">
+    <div class="sec-title" style="color:var(--yellow)"><span data-i18n="secAzimuth">🧭 Panel azimuth</span></div>
+    <div id="compass-wrap">
+      <svg id="compass-svg" viewBox="0 0 160 160" width="154" height="154"></svg>
+      <div style="display:flex;gap:5px;align-items:center">
+        <input type="number" id="compass-input" min="0" max="359" value="180"/>
+        <span style="color:var(--text3);font-size:11px">°</span>
+      </div>
+      <div class="az-btns" id="az-presets"></div>
+    </div>
+    <div id="az-hint" style="text-align:center;color:var(--text3);font-size:10px;margin-top:6px"></div>
+  </div>
+
+  <!-- PANEL TILT -->
+  <div class="sec">
+    <div class="sec-title" style="color:var(--purple)"><span data-i18n="secTilt">📐 Panel tilt (relative to roof)</span></div>
+    <div class="sl-row">
+      <div class="sl-label">
+        <span data-i18n="tiltLabel">Panel tilt β (relative to roof)</span>
+        <span class="sl-val" style="color:var(--purple)" id="lbl-tilt">35°</span>
+      </div>
+      <input type="range" id="sl-tilt" min="0" max="70" step="1" value="35" style="accent-color:var(--purple)" oninput="onTiltChange(this.value)"/>
+    </div>
+    <div style="background:var(--bg4);border-radius:5px;padding:6px 8px;font-size:11px">
+      <div style="display:flex;justify-content:space-between">
+        <span style="color:var(--text3)" data-i18n="tiltAbsLabel">Abs. tilt from horizon:</span>
+        <span id="eff-tilt-disp" style="color:var(--purple);font-weight:700;font-family:'Space Mono',monospace">35.0°</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROOF SLOPES -->
+  <div class="sec">
+    <div class="sec-title" style="color:var(--green)"><span data-i18n="secRoof">🏠 Roof slope</span></div>
+    <div style="color:var(--text3);font-size:10px;margin-bottom:8px;line-height:1.5">
+      <strong style="color:var(--text)" data-i18n="roofAlong">Slope along azimuth</strong> = along azimuth. <strong style="color:var(--text)" data-i18n="roofCross">Cross slope</strong> = perpendicular. β <strong style="color:#f97316" data-i18n="betaKept">kept absolute</strong>.
+    </div>
+    <div class="sl-row">
+      <div class="sl-label">
+        <span data-i18n="roofAlong">Slope along azimuth</span>
+        <span class="sl-val" style="color:var(--green)" id="lbl-roof-along">0°</span>
+      </div>
+      <input type="range" id="sl-roof-along" min="-30" max="30" step="1" value="0" style="accent-color:var(--green)"
+        oninput="onRoofAlongChange(+this.value)"/>
+    </div>
+    <div class="sl-row">
+      <div class="sl-label">
+        <span data-i18n="roofCross">Cross slope</span>
+        <span class="sl-val" style="color:var(--blue)" id="lbl-roof-cross">0°</span>
+      </div>
+      <input type="range" id="sl-roof-cross" min="-30" max="30" step="1" value="0" style="accent-color:var(--blue)"
+        oninput="onRoofCrossChange(+this.value)"/>
+    </div>
+    <div style="background:var(--bg4);border-radius:6px;padding:8px;font-size:11px">
+      <div class="geo-row">
+        <span class="gl" data-i18n="effTiltLabel">Eff. panel tilt (from horizon):</span>
+        <span class="gv" id="eff-tilt" style="color:var(--yellow)">35.0°</span>
+      </div>
+      <div class="geo-row">
+        <span class="gl" data-i18n="betaAbsLabel">β relative to roof (kept):</span>
+        <span class="gv" id="lbl-beta-abs" style="color:#f97316">35°</span>
+      </div>
+      <div class="geo-row">
+        <span class="gl" data-i18n="effAzLabel">Eff. azimuth:</span>
+        <span class="gv" id="eff-az" style="color:var(--yellow)">180°</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL DIMS -->
+  <div class="sec">
+    <div class="sec-title" style="color:var(--red)"><span data-i18n="secDims">📏 Panel dimensions</span></div>
+    <div class="sl-row">
+      <div class="sl-label"><span data-i18n="dimW">Width W</span><span class="sl-val" style="color:var(--red)" id="lbl-pw">1953 mm</span></div>
+      <input type="range" id="sl-pw" min="500" max="3000" step="1" value="1953" style="accent-color:var(--red)" oninput="P.panelW=+this.value;document.getElementById('lbl-pw').textContent=this.value+' mm';update()"/>
+    </div>
+    <div class="sl-row">
+      <div class="sl-label"><span data-i18n="dimH">Height H (along slope)</span><span class="sl-val" style="color:var(--red)" id="lbl-ph">1134 mm</span></div>
+      <input type="range" id="sl-ph" min="500" max="2500" step="1" value="1134" style="accent-color:var(--red)" oninput="P.panelH=+this.value;document.getElementById('lbl-ph').textContent=this.value+' mm';update()"/>
+    </div>
+    <div class="sl-row">
+      <div class="sl-label"><span data-i18n="dimPower">Panel power</span><span class="sl-val" style="color:#fbbf24" id="lbl-pp">400 Wp</span></div>
+      <input type="range" id="sl-pp" min="100" max="700" step="5" value="400" style="accent-color:#fbbf24" oninput="P.panelPower=+this.value;document.getElementById('lbl-pp').textContent=this.value+' Wp';update()"/>
+    </div>
+    <div class="sl-row">
+      <div class="sl-label"><span data-i18n="dimEff">Efficiency</span><span class="sl-val" style="color:#fbbf24" id="lbl-peff">20.5%</span></div>
+      <input type="range" id="sl-peff" min="10" max="25" step="0.5" value="20.5" style="accent-color:#fbbf24" oninput="P.panelEff=+this.value;document.getElementById('lbl-peff').textContent=this.value+'%';update()"/>
+    </div>
+  </div>
+
+  <!-- MATRIX -->
+  <div class="sec">
+    <div class="sec-title" style="color:var(--yellow)"><span data-i18n="secMatrix">🔢 Panel array</span></div>
+    <div class="num-row">
+      <label data-i18n="matCols">Columns (horizontal)</label>
+      <div class="num-ctrl">
+        <button class="num-btn" onclick="stepNum('cols',-1,1,30)">−</button>
+        <span class="num-val" id="num-cols">3</span>
+        <button class="num-btn" onclick="stepNum('cols',+1,1,30)">+</button>
+      </div>
+    </div>
+    <div class="num-row">
+      <label data-i18n="matRows">Rows (depth)</label>
+      <div class="num-ctrl">
+        <button class="num-btn" onclick="stepNum('rows',-1,1,30)">−</button>
+        <span class="num-val" id="num-rows">4</span>
+        <button class="num-btn" onclick="stepNum('rows',+1,1,30)">+</button>
+      </div>
+    </div>
+    <div style="background:var(--bg4);border-radius:6px;padding:7px">
+      <div class="geo-row"><span class="gl" data-i18n="matPanels">Panels</span><span class="gv" id="m-count" style="color:var(--yellow)">12 szt</span></div>
+      <div class="geo-row"><span class="gl" data-i18n="matPower">Power</span><span class="gv" id="m-kwp" style="color:var(--yellow)">4.80 kWp</span></div>
+      <div class="geo-row"><span class="gl" data-i18n="matArea">Active area</span><span class="gv" id="m-area" style="color:var(--yellow)">0.0 m²</span></div>
+    </div>
+  </div>
+
+  <!-- ROW SPACING -->
+  <div class="sec">
+    <div class="sec-title" style="color:var(--cyan)"><span data-i18n="secSpacing">📏 Row spacing</span></div>
+    <div style="color:var(--text3);font-size:10px;margin-bottom:8px;line-height:1.5">
+      <span data-i18n="spacingDesc">Min clearance G and row pitch R (0 = auto from shadow calc).</span>
+    </div>
+    <div class="num-row" style="margin-bottom:9px">
+      <label style="color:var(--text3);font-size:11px"><span data-i18n="spacingG">G — min. clearance [mm]</span></label>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="num-btn" onclick="stepP('minGap',-10,50,2000);updateSpacingDisplay()">−</button>
+        <span class="num-val" id="disp-minGap" style="min-width:46px">150</span>
+        <button class="num-btn" onclick="stepP('minGap',+10,50,2000);updateSpacingDisplay()">+</button>
+      </div>
+    </div>
+    <div style="margin-bottom:9px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="color:var(--text3);font-size:11px"><span data-i18n="spacingRlabel">R — row pitch [mm]</span></span>
+        <span id="disp-rowPitch-auto" style="color:var(--cyan);font-size:10px;font-family:'Space Mono',monospace"></span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="number" id="inp-rowPitch" placeholder="auto" min="100" max="10000" step="10"
+          style="flex:1;background:var(--bg4);border:1px solid var(--border2);color:var(--blue2);
+          border-radius:5px;padding:5px 6px;font-size:12px;font-family:'Space Mono',monospace"
+          oninput="onRowPitchInput(this.value)"/>
+        <button onclick="resetRowPitch()" style="padding:4px 8px;background:var(--bg4);border:1px solid var(--border2);
+          color:var(--text3);border-radius:5px;cursor:pointer;font-size:10px;white-space:nowrap;font-family:'Syne',sans-serif">
+          ↺ auto
+        </button>
+      </div>
+      <div style="color:var(--text3);font-size:9px;margin-top:3px" data-i18n="spacingRauto">Leave empty = auto (shadow-free in December)</div>
+    </div>
+    <div style="background:var(--bg4);border-radius:6px;padding:7px;font-size:11px">
+      <div class="geo-row"><span class="gl" data-i18n="spacingCalc">Calculated R (auto)</span><span class="gv" id="geo-rowPitch-calc" style="color:var(--cyan)">—</span></div>
+      <div class="geo-row"><span class="gl" data-i18n="spacingUsed">Used R</span><span class="gv" id="geo-rowPitch-used" style="color:#f59e0b">—</span></div>
+      <div class="geo-row"><span class="gl" data-i18n="spacingGap">Clearance G</span><span class="gv" id="geo-gap-used" style="color:var(--green)">—</span></div>
+    </div>
+  </div>
+
+  <!-- PVGIS -->
+  <div id="pvgis-box">
+    <div class="sec-title" style="color:var(--green)"><span data-i18n="secPVGIS">🛰 PVGIS EU JRC — satellite data</span></div>
+    <!-- PVGIS params -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+      <div>
+        <div style="color:var(--text3);font-size:10px;margin-bottom:2px" data-i18n="pvgisYear">Data year</div>
+        <select id="pvgis-year" style="width:100%">
+          <option value="2020" selected>2020</option>
+          <option value="2019">2019</option>
+          <option value="2018">2018</option>
+          <option value="2017">2017</option>
+          <option value="2016">2016</option>
+          <option value="2015">2015</option>
+          <option value="2014">2014</option>
+          <option value="2013">2013</option>
+          <option value="2012">2012</option>
+          <option value="2011">2011</option>
+          <option value="2010">2010</option>
+        </select>
+      </div>
+      <div>
+        <div style="color:var(--text3);font-size:10px;margin-bottom:2px" data-i18n="pvgisTilt">Tilt angle (°)</div>
+        <input type="number" id="pvgis-tilt" value="30" min="0" max="90"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--blue2);
+          border-radius:5px;padding:4px 6px;font-size:12px;font-family:'Space Mono',monospace"/>
+      </div>
+      <div>
+        <div style="color:var(--text3);font-size:10px;margin-bottom:2px" data-i18n="pvgisAz">Azimuth — PVGIS (°)</div>
+        <input type="number" id="pvgis-az" value="0" min="-180" max="180"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--blue2);
+          border-radius:5px;padding:4px 6px;font-size:12px;font-family:'Space Mono',monospace"/>
+        <div style="color:var(--text3);font-size:9px;margin-top:2px" data-i18n="pvgisAzHint">0=south, -90=east, +90=west</div>
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button onclick="syncPVGISFromCalc()" style="width:100%;padding:5px;background:var(--bg4);border:1px solid var(--border2);
+          color:var(--blue2);border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;font-family:'Syne',sans-serif">
+          <span data-i18n="pvgisSync">⟳ Sync from calculator</span>
+        </button>
+      </div>
+    </div>
+    <div class="pvgis-params" id="pvgis-info">eff. β=35° Az=0° · 52.2297°N 21.0122°E</div>
+    <button id="pvgis-btn" onclick="loadPVGIS()"><span data-i18n="pvgisBtn">🔄 Fetch PVGIS data</span></button>
+    <div id="pvgis-log"></div>
+    <div id="pvgis-err">
+      <div style="color:#f87171;font-weight:700;margin-bottom:3px" data-i18n="pvgisErr">⚠️ Error</div>
+      <div id="pvgis-err-msg" style="color:var(--text2);white-space:pre-wrap;line-height:1.4;font-size:10px"></div>
+      <div style="color:var(--text3);margin-top:5px;font-size:9px">
+        <span data-i18n="pvgisErrNote">Note: PVGIS requires CORS. If fetch fails, use a server or proxy.</span>
+      </div>
+      <button onclick="closeErr()" style="margin-top:5px;padding:2px 8px;background:#2d1a1a;border:1px solid #7f1d1d;
+        color:#f87171;border-radius:4px;cursor:pointer;font-size:10px"><span data-i18n="pvgisClose">✕ Close</span></button>
+    </div>
+    <div id="pvgis-ok">
+      <div style="color:var(--green);font-size:11px;font-weight:700" data-i18n="pvgisActive">✅ PVGIS active</div>
+      <div class="geo-row" style="margin-top:4px">
+        <span class="gl" data-i18n="pvgisEyLabel">E_y (annual)</span>
+        <span id="pvgis-ey" style="color:#4ade80;font-weight:700;font-family:'Space Mono',monospace"></span>
+      </div>
+      <div class="geo-row" id="pvgis-pr-row" style="display:none">
+        <span class="gl" data-i18n="pvgisPRLabel">PR</span>
+        <span id="pvgis-pr" style="color:#4ade80;font-weight:700;font-family:'Space Mono',monospace"></span>
+      </div>
+      <button onclick="clearPVGIS()" style="margin-top:6px;padding:3px 8px;background:var(--bg4);border:1px solid var(--border2);
+        color:var(--text3);border-radius:4px;cursor:pointer;font-size:10px;font-family:'Syne',sans-serif">
+        <span data-i18n="pvgisClear">✕ Clear PVGIS</span>
+      </button>
+      <div id="pvgis-dbg" style="margin-top:4px;color:#64748b;font-size:9px;word-break:break-all;line-height:1.4"></div>
+      <div id="pvgis-rad-status" style="margin-top:4px;font-size:10px;color:#60a5fa;line-height:1.4"></div>
+    </div>
+  </div>
+
+  <!-- GEO RESULTS -->
+  <div id="geo-results">
+    <div style="color:var(--blue2);font-size:10px;font-weight:800;margin-bottom:8px;text-transform:uppercase"><span data-i18n="secGeoRes">📊 Geometry results</span></div>
+    <div id="geo-rows"></div>
+  </div>
+
+</div><!-- end sidebar -->
+
+<!-- ════ MAIN CONTENT ════ -->
+<div id="main">
+  <div id="tabs">
+    <button class="tab-btn active" data-tab="side" onclick="setTab('side')">📐 Side view</button>
+    <button class="tab-btn" data-tab="top" onclick="setTab('top')">🔼 Top view</button>
+    <button class="tab-btn" data-tab="view3d" onclick="setTab('view3d')">🧊 3D view</button>
+    <button class="tab-btn" data-tab="radiation" onclick="setTab('radiation')">🌤 Radiation</button>
+    <button class="tab-btn" data-tab="yield" onclick="setTab('yield')">⚡ Yield</button>
+    <button class="tab-btn" data-tab="calc" onclick="setTab('calc')">🧮 Formulas</button>
+  </div>
+
+  <div class="panel-box">
+    <!-- Side view tab -->
+    <div id="tab-side" class="fade">
+      <div style="color:var(--text3);font-size:11px;margin-bottom:8px" id="side-desc"></div>
+      <div class="svg-wrap" id="side-svg-wrap"></div>
+      <div class="legend" id="side-legend"></div>
+    </div>
+
+    <!-- Top view tab -->
+    <div id="tab-top" style="display:none" class="fade">
+      <div style="color:var(--text3);font-size:11px;margin-bottom:8px" id="top-desc"></div>
+      <div class="svg-wrap" id="top-svg-wrap"></div>
+    </div>
+
+    <!-- 3D view tab -->
+    <div id="tab-view3d" style="display:none" class="fade">
+      <div style="color:var(--text3);font-size:11px;margin-bottom:8px">
+        <span data-i18n="view3dDesc">3D view — roof with panels. Drag to rotate, scroll to zoom.</span>
+      </div>
+      <div style="position:relative;background:var(--bg);border-radius:8px;overflow:hidden">
+        <canvas id="canvas3d" style="width:100%;height:560px;display:block;cursor:grab"></canvas>
+        <div id="canvas3d-overlay" style="position:absolute;top:8px;right:10px;font-size:10px;color:var(--text3);pointer-events:none;line-height:1.7;text-align:right">
+          <span id="info3d-tilt"></span><br>
+          <span id="info3d-az"></span><br>
+          <span id="info3d-roof"></span>
+        </div>
+        <div style="position:absolute;bottom:8px;left:10px;font-size:10px;color:var(--text3);pointer-events:none">
+          <span data-i18n="view3dHint">🖱 Drag = rotate · Wheel = zoom</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Yield tab -->
+    <div id="tab-yield" style="display:none" class="fade">
+      <div class="kpi-grid" id="yield-kpis"></div>
+      <div class="charts-row" id="yield-charts"></div>
+      <div style="background:var(--bg4);border-radius:8px;padding:12px;overflow-x:auto">
+        <div style="color:var(--text3);font-size:11px;font-weight:700;margin-bottom:7px">
+          <span id="yield-table-title" data-i18n="yieldTable">📋 Monthly table</span> —
+          <span id="table-source" class="source-badge source-model">📊 Model</span>
+        </div>
+        <table id="yield-table">
+          <thead><tr>
+            <th style="text-align:left" data-i18n="yieldMonth">Month</th>
+            <th style="text-align:right" data-i18n="yieldIrrCol">Irradiation</th>
+            <th style="text-align:right" data-i18n="yieldKwh">Production</th>
+            <th style="text-align:right" data-i18n="yieldDays">Days</th>
+            <th style="text-align:right" data-i18n="yieldKwhDay">kWh/day</th>
+          </tr></thead>
+          <tbody id="yield-tbody"></tbody>
+        </table>
+      </div>
+      <div id="yield-warn" class="warn-box" style="display:none"></div>
+      <div id="yield-shading-note" style="display:none;margin-top:8px;background:#0a1e18;border:1px solid #1e4d3a;border-radius:8px;padding:8px 12px;font-size:10px;color:#4ade80;line-height:1.5"></div>
+    </div>
+
+
+    <!-- Radiation tab -->
+    <div id="tab-radiation" style="display:none" class="fade">
+      <div id="rad-content"></div>
+    </div>
+    <!-- Calc tab -->
+    <div id="tab-calc" style="display:none" class="fade">
+      <div id="calc-steps"></div>
+    </div>
+  </div>
+</div><!-- end main -->
+</div><!-- end layout -->
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════
+const D = Math.PI / 180;
+const R = 180 / Math.PI;
+const DOY  = [17,47,75,105,135,162,198,228,258,288,318,344];
+const DAYS = [31,28,31,30,31,30,31,31,30,31,30,31];
+const MN_PL = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+const MN_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// MN is always current-language months — refreshed after lang switch
+let MN = [...MN_EN]; // default EN
+function refreshMN() { MN = LANG === 'pl' ? [...MN_PL] : [...MN_EN]; }
+
+
+// ════════════════════════════════════════════════════════════
+// i18n — translations EN (default) / PL
+// ════════════════════════════════════════════════════════════
+let LANG = 'en';
+const T = {
+  en: {
+    appTitle:       '☀️ PV Calculator — Flat / Pitched Roof',
+    appSub:         'Geometry · Roof Slope (2 planes) · Annual Yield · PVGIS EU JRC',
+    langBtn:        '🇵🇱 Polski',
+    langFlag:       '🇵🇱',
+    langLabel:      'Polski',
+    tabSide:        '📐 Side view',
+    tabTop:         '🔼 Top view',
+    tab3D:          '🧊 3D view',
+    tabYield:       '⚡ Yield',
+    tabCalc:        '🧮 Formulas',
+    secLocation:    '🗺 Location — click on map',
+    applyCoords:    '✓ Apply coordinates',
+    secAzimuth:     '🧭 Panel azimuth',
+    azIdeal:        '⭐ Ideal south',
+    azFrom:         'from south',
+    secTilt:        '📐 Panel tilt (relative to roof)',
+    tiltLabel:      'Panel tilt β (relative to roof)',
+    tiltAbsLabel:   'Abs. tilt from horizon:',
+    betaKept:       'β kept absolute:',
+    secRoof:        '🏠 Roof slope',
+    roofAlong:      'Slope along azimuth',
+    roofCross:      'Cross slope',
+    effTiltLabel:   'Eff. panel tilt (from horizon):',
+    betaAbsLabel:   'β relative to roof (kept):',
+    effAzLabel:     'Eff. azimuth:',
+    secDims:        '📏 Panel dimensions',
+    dimW:           'Width W',
+    dimH:           'Height H (along slope)',
+    dimPower:       'Panel power',
+    dimEff:         'Efficiency',
+    secMatrix:      '🔢 Panel array',
+    matCols:        'Columns (horizontal)',
+    matRows:        'Rows (depth)',
+    matPanels:      'Panels',
+    matPower:       'Power',
+    matArea:        'Active area',
+    secSpacing:     '📏 Row spacing',
+    spacingDesc:    'Min clearance G and row pitch R (0 = auto from shadow calc).',
+    spacingG:       'G — min. clearance [mm]',
+    spacingRlabel:  'R — row pitch [mm]',
+    spacingRauto:   'Leave empty = auto (shadow-free in December)',
+    spacingRbtn:    '↺ auto',
+    spacingCalc:    'Calculated R (auto)',
+    spacingUsed:    'Used R',
+    spacingGap:     'Clearance G',
+    secPVGIS:       '🛰 PVGIS EU JRC — satellite data',
+    pvgisYear:      'Data year',
+    pvgisTilt:      'Tilt angle (°)',
+    pvgisAz:        'Azimuth — PVGIS (°)',
+    pvgisAzHint:    '0=south, -90=east, +90=west',
+    pvgisSync:      '⟳ Sync from calculator',
+    pvgisBtn:       '🔄 Fetch PVGIS data',
+    pvgisActive:    '✅ PVGIS active',
+    pvgisEy:        'E_y (annual)',
+    pvgisPR:        'PR',
+    pvgisClear:     '✕ Clear PVGIS',
+    pvgisClose:     '✕ Close',
+    pvgisErr:       '⚠️ Error',
+    pvgisErrNote:   'Note: PVGIS requires CORS. If fetch fails, use a server or proxy.',
+    pvgisClose:     '✕ Close',
+    secGeoRes:      '📊 Geometry results',
+    geoSunElev:     'Sun elev. 21 Dec',
+    geoEffTilt:     'Eff. β (from horiz.)',
+    geoBetaRoof:    'β rel. to roof',
+    geoEffAz:       'Eff. azimuth',
+    geoProjH:       'Vertical height h',
+    geoProjD:       'Horizontal proj. d',
+    geoAutoR:       'R auto (no shadow)',
+    geoUsedR:       'R used',
+    geoGap:         'Gap G',
+    geoDepth:       'Roof depth',
+    geoWidth:       'Roof width',
+    geoAzCorr:      'Azimuth correction',
+    hdrPanels:      'panels',
+    srcPVGIS:       '🛰 PVGIS',
+    srcModel:       '📊 Model',
+    yieldAnnual:    '⚡ Annual yield',
+    yieldSpec:      '🔆 Specific yield',
+    yieldPeak:      '🏭 Installed power',
+    yieldPanels:    '🟦 Panels',
+    yieldArea:      '📐 Active area',
+    yieldEffBAz:    '🧭 Eff. β/Az',
+    yieldProd:      '⚡ Production',
+    yieldIrr:       '🌤 Irradiation on panel',
+    yieldTable:     '📋 Monthly table',
+    yieldMonth:     'Month',
+    yieldIrrCol:    'Irradiation',
+    yieldKwh:       'Production',
+    yieldDays:      'Days',
+    yieldKwhDay:    'kWh/day',
+    yieldYear:      'YEAR',
+    yieldWarn:      '⚠️ Results from Liu-Jordan model (Meteonorm data for φ={lat}°). Click "Fetch PVGIS data" to use real EU JRC satellite data.',
+    view3dDesc:     '3D view — roof with panels. Drag to rotate, scroll to zoom. Roof slope and panel tilt compensate each other.',
+    view3dHint:     '🖱 Drag = rotate · Wheel = zoom',
+    sideDesc:       'Cross-section along azimuth {az}°. Eff. panel tilt = {tilt}°',
+    topDesc:        'Top view — {r}×{c} = {n} panels. Required roof space: {w} m × {d} m',
+    calcStep1t:     '1. Sun elevation — winter solstice 21 Dec',
+    calcStep2t:     '2. Effective panel tilt (accounts for roof slope)',
+    calcStep3t:     '3. Effective azimuth (correction from cross-slope)',
+    calcStep4t:     '4. Vertical panel height above roof',
+    calcStep5t:     '5. Horizontal panel projection',
+    calcStep6t:     '6. Min row pitch (shadow-free on 21 Dec)',
+    calcStep7t:     '7. Free gap G between rows',
+    calcStep7bt:    '7b. Inter-row shading (hourly model)',
+    calcStep8t:     '8. Roof dimensions for {r}×{c} array',
+    calcStep9t:     '9. Peak power',
+    calcStep10t:    '10. Angle of incidence (hourly model)',
+    calcStep11t:    '11. Annual yield (PR=0.80)',
+    calcStep12t:    '12. PVGIS EU JRC data (API v5_2)',
+    calcPVGISClick: '→ click "Fetch PVGIS data"',
+    shadingNote:    'inter-row shading included',
+    noShading:      'no shading (single row)',
+    kwhPerYear:     'kWh/yr',
+    radTitle:        '🌤 Horizontal & Tilted Irradiation (PVGIS MRcalc)',
+    radHoriz:        'Horizontal H_horiz',
+    radTilted:       'Tilted H(i)',
+    radUnit:         'kWh/m²/month',
+    radColMonth:     'Month',
+    radColHoriz:     'H_horiz (kWh/m²)',
+    radColTilted:    'H(i) tilted (kWh/m²)',
+    radColDiff:      'Gain vs horiz.',
+    radNoData:       '⏳ Radiation data will load automatically after fetching PVGIS data.',
+    radYear:         'YEAR',
+
+    kwhPerMonth:    'kWh/month',
+    kwhPerM2:       'kWh/m²/mo.',
+    pcs:            'pcs',
+    manual:         'MANUAL',
+    autoStr:        'auto',
+    roofSlope:      'Roof slope: along {a}°, cross {c}° → eff. β={b}°.',
+    calcIntegrated: 'Integrated for each month of year',
+    calcRUsed:      'R used = {r} mm',
+    legendH:        'H panel', legendh: 'height h', legendd: 'proj. d',
+    legendGap:      'gap',     legendPitch: 'pitch',   legendBeta: 'β angle',
+    legendAlpha:    'α angle', legendRoof: 'roof slope',
+    sideRoof:       'ROOF',
+    pvgisFetching:  '⏳ Fetching…',
+    pvgisEyLabel:   'E_y (annual)',
+    pvgisPRLabel:   'PR',
+    azEast:         'E', azWest: 'W',
+  },
+  pl: {
+    appTitle:       '☀️ Kalkulator PV — Płaski / Skośny Dach',
+    appSub:         'Geometry · Roof Slope (2 planes) · Annual Yield · PVGIS EU JRC',
+    langBtn:        '🇬🇧 English',
+    langFlag:       '🇬🇧',
+    langLabel:      'English',
+    tabSide:        '📐 Widok boczny',
+    tabTop:         '🔼 Widok z góry',
+    tab3D:          '🧊 Widok 3D',
+    tabYield:       '⚡ Uzysk',
+    tabCalc:        '🧮 Wzory',
+    secLocation:    '🗺 Lokalizacja — kliknij na mapę',
+    applyCoords:    '✓ Zastosuj współrzędne',
+    secAzimuth:     '🧭 Azymut połaci',
+    azIdeal:        '⭐ Idealne południe',
+    azFrom:         'od południa',
+    secTilt:        '📐 Kąt panela (do dachu)',
+    tiltLabel:      'Kąt panela β (wzgl. dachu)',
+    tiltAbsLabel:   'Kąt od horyzontu:',
+    betaKept:       'β zachowany bezwzgl.:',
+    secRoof:        '🏠 Nachylenie dachu',
+    roofAlong:      'Nachylenie wzdłuż azymutu',
+    roofCross:      'Nachylenie poprzeczne',
+    effTiltLabel:   'Eff. kąt panela (od horyzontu):',
+    betaAbsLabel:   'β wzgl. dachu (zachowany):',
+    effAzLabel:     'Eff. azymut:',
+    secDims:        '📏 Wymiary panela',
+    dimW:           'Szerokość W',
+    dimH:           'Wysokość H (wzdłuż skłonu)',
+    dimPower:       'Moc panela',
+    dimEff:         'Sprawność',
+    secMatrix:      '🔢 Matryca paneli',
+    matCols:        'Kolumny (poziomo)',
+    matRows:        'Wiersze (głębokość)',
+    matPanels:      'Paneli',
+    matPower:       'Moc',
+    matArea:        'Pow. czynna',
+    secSpacing:     '📏 Rozstaw rzędów',
+    spacingDesc:    'Minimalna odległość G i rozstaw osi R (0 = auto z obliczeń cienia).',
+    spacingG:       'G — min. prześwit [mm]',
+    spacingRlabel:  'R — rozstaw osi [mm]',
+    spacingRauto:   'Zostaw puste = auto (min. bez cienia w grudniu)',
+    spacingRbtn:    '↺ auto',
+    spacingCalc:    'Obliczony R (auto)',
+    spacingUsed:    'Użyty R',
+    spacingGap:     'Prześwit G',
+    secPVGIS:       '🛰 PVGIS EU JRC — dane satelitarne',
+    pvgisYear:      'Rok danych',
+    pvgisTilt:      'Kąt nachylenia (°)',
+    pvgisAz:        'Azymut — PVGIS (°)',
+    pvgisAzHint:    '0=południe, -90=wschód, +90=zachód',
+    pvgisSync:      '⟳ Sync z kalkulatora',
+    pvgisBtn:       '🔄 Pobierz dane PVGIS',
+    pvgisActive:    '✅ PVGIS aktywny',
+    pvgisEy:        'E_y (roczny)',
+    pvgisPR:        'PR',
+    pvgisClear:     '✕ Wyczyść PVGIS',
+    pvgisErr:       '⚠️ Błąd',
+    pvgisErrNote:   'Uwaga: PVGIS wymaga CORS. Jeśli pobieranie nie działa, uruchom przez serwer.',
+    pvgisClose:     '✕ Zamknij',
+    secGeoRes:      '📊 Wyniki geometrii',
+    geoSunElev:     'Wys. słońca 21 XII',
+    geoEffTilt:     'Eff. kąt β (od hor.)',
+    geoBetaRoof:    'β wzgl. dachu',
+    geoEffAz:       'Eff. azymut',
+    geoProjH:       'Wys. pionowa h',
+    geoProjD:       'Rzut poziomy d',
+    geoAutoR:       'R auto (bez cień.)',
+    geoUsedR:       'R użyty',
+    geoGap:         'Prześwit G',
+    geoDepth:       'Dach głębokość',
+    geoWidth:       'Dach szerokość',
+    geoAzCorr:      'Korekcja azymutu',
+    hdrPanels:      'paneli',
+    srcPVGIS:       '🛰 PVGIS',
+    srcModel:       '📊 Model',
+    yieldAnnual:    '⚡ Uzysk roczny',
+    yieldSpec:      '🔆 Uzysk spec.',
+    yieldPeak:      '🏭 Moc instal.',
+    yieldPanels:    '🟦 Paneli',
+    yieldArea:      '📐 Pow. czynna',
+    yieldEffBAz:    '🧭 Eff. β/Az',
+    yieldProd:      '⚡ Produkcja',
+    yieldIrr:       '🌤 Napromieniowanie na panel',
+    yieldTable:     '📋 Tabela miesięczna',
+    yieldMonth:     'Mies.',
+    yieldIrrCol:    'Napromień.',
+    yieldKwh:       'Produkcja',
+    yieldDays:      'Dni',
+    yieldKwhDay:    'kWh/dzień',
+    yieldYear:      'ROK',
+    yieldWarn:      '⚠️ Wyniki z modelu Liu-Jordan (dane Meteonorm dla φ={lat}°). Kliknij „Pobierz dane PVGIS" aby użyć danych satelitarnych EU JRC.',
+    view3dDesc:     '<span data-i18n="view3dDesc">3D view — roof with panels. Drag to rotate, scroll to zoom.</span>',
+    view3dHint:     '🖱 Przeciągnij = obracaj · Kółko = zoom',
+    sideDesc:       'Przekrój boczny wzdłuż azymutu {az}°. Eff. kąt panela = {tilt}°',
+    topDesc:        'Rzut z góry — {r}×{c} = {n} paneli. Wymaga: {w} m × {d} m',
+    calcStep1t:     '1. Kąt słońca — przesilenie zimowe 21 XII',
+    calcStep2t:     '2. Efektywny kąt panela (uwzględnia nachylenie dachu)',
+    calcStep3t:     '3. Efektywny azymut (korekcja z nachylenia poprzecznego)',
+    calcStep4t:     '4. Pionowa wysokość panela nad dachem',
+    calcStep5t:     '5. Poziomy rzut panela',
+    calcStep6t:     '6. Minimalny rozstaw osi wierszy (bez cień. 21 XII)',
+    calcStep7t:     '7. Wolna przestrzeń G między wierszami',
+    calcStep7bt:    '7b. Cieniowanie między rzędami (model godzinowy)',
+    calcStep8t:     '8. Wymiary dachu dla {r}×{c} matrycy',
+    calcStep9t:     '9. Moc szczytowa instalacji',
+    calcStep10t:    '10. Kąt padania promienia na panel (model godzinowy)',
+    calcStep11t:    '11. Uzysk roczny (PR=0,80)',
+    calcStep12t:    '12. Dane PVGIS EU JRC (API v5_2)',
+    calcPVGISClick: '→ kliknij „Pobierz dane PVGIS"',
+    shadingNote:    'cień między rzędami uwzględniony',
+    noShading:      'brak rzędów do cieniowania',
+    kwhPerYear:     'kWh/rok',
+    radTitle:        '🌤 Radiacja horyzontalna i na panel (PVGIS MRcalc)',
+    radHoriz:        'Pozioma H_horiz',
+    radTilted:       'Na panel H(i)',
+    radUnit:         'kWh/m²/miesiąc',
+    radColMonth:     'Miesiąc',
+    radColHoriz:     'H_horiz (kWh/m²)',
+    radColTilted:    'H(i) panel (kWh/m²)',
+    radColDiff:      'Zysk vs poziom',
+    radNoData:       '⏳ Dane radiacji załadują się automatycznie po pobraniu PVGIS.',
+    radYear:         'ROK',
+
+    kwhPerMonth:    'kWh/miesiąc',
+    kwhPerM2:       'kWh/m²/mies.',
+    pcs:            'szt',
+    manual:         'RĘCZNIE',
+    autoStr:        'auto',
+    roofSlope:      'Nachylenie dachu: wzdłuż {a}°, poprzecznie {c}° → eff. β={b}°.',
+    calcIntegrated: 'Integrowany dla każdego miesiąca roku',
+    calcRUsed:      'R użyty = {r} mm',
+    legendH:        'H panela', legendh: 'Wys. h', legendd: 'Rzut d',
+    legendGap:      'Odstęp', legendPitch: 'Rozstaw', legendBeta: 'Kąt β',
+    legendAlpha:    'Kąt α', legendRoof: 'Nachyl. dachu',
+    sideRoof:       'DACH',
+    pvgisFetching:  '⏳ Pobieranie…',
+    pvgisEyLabel:   'E_y (roczny)',
+    pvgisPRLabel:   'PR',
+    azEast:         'wsch', azWest: 'zach',
+  }
+};
+function t(key, vars) {
+  let s = (T[LANG] || T.en)[key] || (T.en[key] || key);
+  if (vars) Object.keys(vars).forEach(k => s = s.replace('{'+k+'}', vars[k]));
+  return s;
+}
+function toggleLang() {
+  LANG = LANG === 'en' ? 'pl' : 'en';
+  applyLang();
+  update();
+}
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.getElementById('lang-btn').title = t('langBtn');
+  const hdrUnit = document.getElementById('hdr-unit'); if(hdrUnit) hdrUnit.textContent = t('kwhPerYear');
+  const flagEl = document.getElementById('lang-flag');
+  const labelEl = document.getElementById('lang-label');
+  if (flagEl) flagEl.textContent = t('langFlag');
+  if (labelEl) labelEl.textContent = t('langLabel');
+  document.title = t('appTitle').replace(/[☀️🌤⚡📐🏭🟦🧭]/g,'').trim();
+  // Update all data-i18n elements
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    el.textContent = t(key);
+  });
+  // Update placeholders
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+
+  // Refresh month-name dependent elements
+  refreshMN();
+  const ytt = document.getElementById('yield-table-title');
+  if (ytt) ytt.textContent = t('yieldTable');
+  // Update tab buttons
+  document.querySelector('[data-tab="side"]').textContent  = t('tabSide');
+  document.querySelector('[data-tab="top"]').textContent   = t('tabTop');
+  document.querySelector('[data-tab="view3d"]').textContent= t('tab3D');
+  document.querySelector('[data-tab="yield"]').textContent = t('tabYield');
+  const radTabBtn = document.querySelector('[data-tab="radiation"]'); if(radTabBtn) radTabBtn.textContent = (LANG==='pl'?'🌤 Radiacja':'🌤 Radiation');
+  document.querySelector('[data-tab="calc"]').textContent  = t('tabCalc');
+}
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let P = {
+  lat: 52.2297, lon: 21.0122,
+  panelW: 1953, panelH: 1134, panelPower: 400, panelEff: 20.5,
+  rows: 4, cols: 3,
+  panelAz: 180,
+  panelTiltRel: 35,
+  roofAlong: 0, roofCross: 0,
+  minGap: 150,          // mm — minimum free gap between rows
+  rowPitchOverride: null, // mm — null = auto (use shadow-based calculation)
+};
+let pvgisData = null;
+let pvgisRadData = null; // MRcalc — horizontal & tilted irradiation
+let currentTab = 'side';
+
+// ════════════════════════════════════════════════════════════
+// SOLAR PHYSICS
+// ════════════════════════════════════════════════════════════
+function sunPos(doy, hour, lat) {
+  const decl = 23.45 * Math.sin(D * 360/365 * (doy - 81));
+  const ha = (hour - 12) * 15;
+  const sinE = Math.sin(lat*D)*Math.sin(decl*D) + Math.cos(lat*D)*Math.cos(decl*D)*Math.cos(ha*D);
+  const elev = Math.asin(Math.max(-1, Math.min(1, sinE))) * R;
+  const cosA = (Math.sin(decl*D) - Math.sin(lat*D)*sinE) / (Math.cos(lat*D) * Math.max(0.001, Math.cos(elev*D)));
+  let az = Math.acos(Math.max(-1, Math.min(1, cosA))) * R;
+  if (ha > 0) az = 360 - az;
+  return { elev, az };
+}
+
+function incidence(sunElev, sunAz, panelTilt, panelAz) {
+  if (sunElev <= 0) return null;
+  const c = Math.cos(sunElev*D)*Math.sin(panelTilt*D)*Math.cos((sunAz-panelAz)*D)
+          + Math.sin(sunElev*D)*Math.cos(panelTilt*D);
+  return Math.acos(Math.max(0, Math.min(1, c))) * R;
+}
+
+function H0day(doy, lat) {
+  const B = D * 360/365 * (doy - 81);
+  const E0 = 1 + 0.033 * Math.cos(B);
+  const decl = 23.45 * Math.sin(B);
+  const cosHs = -Math.tan(lat*D) * Math.tan(decl*D);
+  if (cosHs >= 1) return 0;
+  const Hs = cosHs <= -1 ? Math.PI : Math.acos(cosHs);
+  return (24/Math.PI)*1367*E0*(Hs*Math.sin(lat*D)*Math.sin(decl*D)+Math.cos(lat*D)*Math.cos(decl*D)*Math.sin(Hs)) / 1000;
+}
+
+function diffFrac(Kt) {
+  if (Kt <= 0.22) return 1 - 0.09*Kt;
+  if (Kt <= 0.80) return 0.9511 - 0.1604*Kt + 4.388*Kt**2 - 16.638*Kt**3 + 12.336*Kt**4;
+  return 0.165;
+}
+
+function ktForLat(lat) {
+  const base = [0.31,0.37,0.44,0.50,0.51,0.52,0.50,0.49,0.43,0.36,0.27,0.25];
+  const adj  = (52 - lat) * 0.004;
+  return base.map(k => Math.max(0.15, Math.min(0.65, k + adj)));
+}
+
+// ════════════════════════════════════════════════════════════
+// GEOMETRY
+// ════════════════════════════════════════════════════════════
+function calcEffTiltAz(panelTiltRel, panelAzBase, roofAlong, roofCross) {
+  const rA = roofAlong*D, rC = roofCross*D, pRel = panelTiltRel*D;
+  const effTiltRad = Math.asin(Math.sin(pRel + rA) * Math.cos(rC));
+  const effTilt = Math.max(0, effTiltRad * R);
+  const azShift = Math.atan2(Math.sin(rC), Math.cos(pRel + rA) * Math.cos(rC)) * R;
+  return { effTilt, effAz: panelAzBase + azShift };
+}
+
+function calcGeometry(p) {
+  const { panelH, panelTiltRel, panelAz, roofAlong, roofCross, lat, rows, cols, panelW } = p;
+  const { effTilt, effAz } = calcEffTiltAz(panelTiltRel, panelAz, roofAlong, roofCross);
+  const bEff = effTilt * D;
+  const sunElev = Math.max(3, 90 - lat - 23.45);
+  const aRad = sunElev * D;
+  const projH = panelH * Math.sin(bEff);
+  const projD = panelH * Math.cos(bEff);
+  const minGap = p.minGap ?? 150;
+  // Auto pitch: shadow-free for winter solstice, minimum = projD + minGap
+  const geometricPitch = projH > 1 ? projH / Math.tan(aRad) : 0;
+  const autoPitch = Math.max(geometricPitch, projD + minGap);
+  // User override OR auto
+  const rowPitch = (p.rowPitchOverride && p.rowPitchOverride > projD + 10)
+    ? p.rowPitchOverride
+    : autoPitch;
+  const freeGap = rowPitch - projD;
+  return {
+    effTilt: effTilt.toFixed(1), effAz: Math.round(effAz),
+    sunElev: sunElev.toFixed(1),
+    projH: Math.round(projH), projD: Math.round(projD),
+    autoPitch: Math.round(autoPitch),
+    rowPitch: Math.round(rowPitch), freeGap: Math.round(freeGap),
+    totalDepth: Math.round((rows-1)*rowPitch + projD),
+    totalWidth: Math.round(cols * panelW),
+    tiltRad: bEff, sunRad: aRad,
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// YIELD — with inter-row shading and roof-tilt awareness
+// ════════════════════════════════════════════════════════════
+function calcYield(p) {
+  const { lat, panelTiltRel, panelAz, roofAlong, roofCross, panelW, panelH, panelPower, rows, cols } = p;
+  const { effTilt, effAz } = calcEffTiltAz(panelTiltRel, panelAz, roofAlong, roofCross);
+  const nPanels = rows * cols;
+  const panelA = (panelW/1000) * (panelH/1000);
+  const PR = 0.80;
+  const KT = ktForLat(lat);
+  const tiltRad = effTilt * D;
+
+  // Geometry for shading calculation
+  const bEff = effTilt * D;
+  const projH = panelH * Math.sin(bEff);   // mm — panel height above roof
+  const projD = panelH * Math.cos(bEff);   // mm — panel footprint depth
+  const rowPitchUsed = (p.rowPitchOverride && p.rowPitchOverride > projD+10)
+    ? p.rowPitchOverride
+    : (() => {
+        const sunElev = Math.max(3, 90-lat-23.45);
+        const gPitch = projH > 1 ? projH/Math.tan(sunElev*D) : 0;
+        return Math.max(gPitch, projD + (p.minGap ?? 150));
+      })();
+  // Shading: for each hour/month compute what fraction of panel is shaded by previous row
+  // Shadow length cast by top edge of front panel onto ground (horizontal projection):
+  //   shadowLen(sunElev) = projH / tan(sunElev)  [panel height in mm]
+  // Shaded panel fraction = max(0, (shadowLen - gapBetweenRows) / projD)
+  //   gapBetweenRows = rowPitchUsed - projD
+  const gapBetweenRows = rowPitchUsed - projD;  // free space behind panel (mm)
+
+  const monthlyYield = [], monthlyIrr = [];
+  for (let m = 0; m < 12; m++) {
+    const doy = DOY[m], days = DAYS[m];
+    const Kt = KT[m], fd = diffFrac(Kt);
+    const GhDay = Kt * H0day(doy, lat) * 1000;
+    let dayTilt = 0;
+    for (let h = 5; h <= 20; h += 0.5) {
+      const { elev, az } = sunPos(doy, h, lat);
+      if (elev <= 0.5) continue;
+      const cosSZ = Math.sin(elev * D);
+      const Gh_h = GhDay * cosSZ / 11.5;
+      const Gb = (1-fd)*Gh_h, Gd = fd*Gh_h;
+      const theta = incidence(elev, az, effTilt, effAz);
+
+      // ── Inter-row shading fraction ──────────────────────
+      // Only relevant when sun is in front of panel (within ±90° of panel azimuth)
+      const azDiff = Math.abs(((az - effAz + 540) % 360) - 180); // 0-180
+      let shadeFraction = 0;
+      if (projD > 1 && elev > 0.5 && azDiff < 90 && rows > 1) {
+        const shadowLen = projH / Math.max(0.01, Math.tan(elev * D)); // horizontal shadow (mm)
+        shadeFraction = Math.max(0, Math.min(1, (shadowLen - gapBetweenRows) / Math.max(1, projD)));
+      }
+      const beamFactor = 1 - shadeFraction; // beam light reduction
+
+      if (theta === null || theta > 89.9) {
+        dayTilt += Gd * (1 + Math.cos(tiltRad)) / 2;
+        continue;
+      }
+      const Rb = Math.max(0, Math.cos(theta*D)) / Math.max(0.01, cosSZ);
+      // Beam component reduced by shading; diffuse/reflected not shaded (sky view)
+      const Gt = Gb*Rb*beamFactor + Gd*(1+Math.cos(tiltRad))/2 + Gh_h*0.2*(1-Math.cos(tiltRad))/2;
+      dayTilt += Math.max(0, Gt) * 0.5;
+    }
+    const mIrr = dayTilt * days / 1000;
+    const mKwh = mIrr * panelA * nPanels * PR;
+    monthlyIrr.push({ month: MN[m], irr: mIrr, days });
+    monthlyYield.push({ month: MN[m], kwh: mKwh, days });
+  }
+  const totalYield = monthlyYield.reduce((s,m) => s+m.kwh, 0);
+  const peakPowerKw = nPanels * panelPower / 1000;
+  const azDiff = Math.abs(effAz - 180);
+  const azFactor = (Math.max(0.5, Math.cos(azDiff*0.8*D)*0.15+0.85)*100).toFixed(1);
+  return {
+    monthlyYield, monthlyIrr, totalYield,
+    peakPowerKw, specificYield: totalYield / peakPowerKw,
+    azFactor, nPanels, totalArea: (panelA*nPanels).toFixed(1),
+    effTilt: effTilt.toFixed(1), effAz: Math.round(effAz),
+    rowPitchUsed: Math.round(rowPitchUsed),
+    shadingNote: rows > 1 ? t('shadingNote')+` (R=${Math.round(rowPitchUsed)}mm)` : t('noShading'),
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// PVGIS FETCH — bezpośrednie zapytanie do API
+// ════════════════════════════════════════════════════════════
+async function loadPVGIS() {
+  const lat = P.lat, lon = P.lon;
+  const tilt = parseFloat(document.getElementById('pvgis-tilt').value) || 30;
+  const aspect = parseFloat(document.getElementById('pvgis-az').value) || 0;
+  const year = document.getElementById('pvgis-year').value;
+  const geo = calcGeometry(P);
+  const yld = calcYield(P);
+  const peakPower = yld.peakPowerKw;
+
+  const btn = document.getElementById('pvgis-btn');
+  const logEl = document.getElementById('pvgis-log');
+  const errEl = document.getElementById('pvgis-err');
+  const okEl  = document.getElementById('pvgis-ok');
+  btn.disabled = true;
+  logEl.style.display = 'block';
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+  pvgisData = null;
+
+  const setLog = t => { logEl.textContent = t; };
+
+  const pvgisUrl = `https://re.jrc.ec.europa.eu/api/v5_2/PVcalc?lat=${lat}&lon=${lon}&peakpower=${peakPower.toFixed(3)}&loss=14&angle=${Math.round(tilt)}&aspect=${Math.round(aspect)}&startyear=${year}&endyear=${year}&outputformat=json`;
+
+  // PVGIS doesn't send CORS headers — we must use a proxy
+  // Try multiple free CORS proxies in sequence
+  const proxies = [
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  ];
+
+  let lastErr = '';
+  for (let i = 0; i < proxies.length; i++) {
+    const proxyUrl = proxies[i](pvgisUrl);
+    setLog(`Attempt ${i+1}/${proxies.length}: sending via CORS proxy…\nPVGIS URL: ${pvgisUrl}`);
+    try {
+      const resp = await fetch(proxyUrl, { method: 'GET' });
+      if (!resp.ok) { lastErr = `HTTP ${resp.status} z proxy ${i+1}`; continue; }
+      setLog('Receiving response…');
+      const data = await resp.json();
+      if (!data?.outputs) { lastErr = "Missing 'outputs' field"; continue; }
+      if (!data.outputs.monthly) { lastErr = "Missing monthly data"; continue; }
+
+      pvgisData = data;
+      logEl.style.display = 'none';
+      okEl.style.display = 'block';
+      const total = data.outputs.totals?.fixed?.E_y ?? 0;
+      const pr    = data.outputs.totals?.fixed?.PR;
+      document.getElementById('pvgis-ey').textContent = `${Math.round(total).toLocaleString()} kWh`;
+      if (pr) {
+        document.getElementById('pvgis-pr').textContent = `${(pr*100).toFixed(1)}%`;
+        document.getElementById('pvgis-pr-row').style.display = 'flex';
+      }
+      // Debug: show actual field names from first monthly record
+      const firstRec = data.outputs?.monthly?.fixed?.[0] ?? data.outputs?.monthly?.[0];
+      if (firstRec) {
+        const fields = Object.keys(firstRec).join(', ');
+        console.log('PVGIS monthly fields:', fields, firstRec);
+        const dbgEl = document.getElementById('pvgis-dbg');
+        if (dbgEl) dbgEl.textContent = `Pola: ${fields}`;
+      }
+      update();
+      btn.disabled = false;
+      loadPVGISRadiation(); // also fetch MRcalc radiation data
+      return; // success
+    } catch(e) { lastErr = e.message; }
+  }
+
+  // All proxies failed
+  logEl.style.display = 'none';
+  errEl.style.display = 'block';
+  document.getElementById('pvgis-err-msg').textContent =
+    `All CORS proxies failed. Last error: ${lastErr}\n\nPVGIS URL: ${pvgisUrl}\n\nYou can open the URL directly in your browser.`;
+  btn.disabled = false;
+}
+
+
+// ════════════════════════════════════════════════════════════
+// PVGIS MRcalc — monthly radiation (horizontal + tilted)
+// https://re.jrc.ec.europa.eu/api/v5_2/MRcalc
+// ════════════════════════════════════════════════════════════
+async function loadPVGISRadiation() {
+  const lat    = P.lat, lon = P.lon;
+  const tilt   = parseFloat(document.getElementById('pvgis-tilt').value)  || 30;
+  const aspect = parseFloat(document.getElementById('pvgis-az').value)    || 0;
+  const year   = document.getElementById('pvgis-year').value;
+
+  const radStatusEl = document.getElementById('pvgis-rad-status');
+  const dbgEl       = document.getElementById('pvgis-dbg');
+  if (radStatusEl) radStatusEl.textContent = (LANG==='pl'
+    ? '⏳ Pobieranie danych radiacji…'
+    : '⏳ Fetching radiation data…');
+
+  const proxies = [
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  ];
+
+  // MRcalc with:
+  //   horirrad=1              → Hh_m field  (horizontal global, kWh/m²/month — monthly total)
+  //   selectrad=1&angle&aspect → H(i)_m field (tilted plane, kWh/m²/month — monthly total)
+  // Fields confirmed from API debug: Hh_m, H(i)_m, SD_m, month, year
+  // Use old endpoint /api/MRcalc (without v5_2) — as per working example from user
+  const radUrl = `https://re.jrc.ec.europa.eu/api/MRcalc`
+    + `?lat=${lat}&lon=${lon}&outputformat=json`
+    + `&startyear=${year}&endyear=${year}`
+    + `&horirrad=1&selectrad=1`
+    + `&angle=${Math.round(tilt)}&aspect=${Math.round(aspect)}`;
+
+  const DAYS12 = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+  for (let pi = 0; pi < proxies.length; pi++) {
+    try {
+      const resp = await fetch(proxies[pi](radUrl), { method: 'GET' });
+      if (!resp.ok) { console.warn(`MRcalc proxy ${pi+1} HTTP ${resp.status}`); continue; }
+
+      const data = await resp.json();
+      console.log('MRcalc raw:', JSON.stringify(data).slice(0, 500));
+
+      const arr = data?.outputs?.monthly;
+      if (!Array.isArray(arr) || arr.length < 12) {
+        console.warn('MRcalc: unexpected structure', data);
+        continue;
+      }
+
+      // Log field names for debugging
+      const fields = Object.keys(arr[0]).join(', ');
+      console.log('MRcalc fields:', fields, 'sample:', arr[0]);
+      if (dbgEl) dbgEl.textContent = `MRcalc: ${fields}`;
+
+      // Fields from API: Hh_m (horizontal monthly kWh/m²), H(i)_m (tilted monthly kWh/m²)
+      // These are already MONTHLY TOTALS — no multiplication needed
+      const tiltedArr = arr.map((m, i) => {
+        const v = m['H(i)_m'] ?? m['H(i)'] ?? m['H(i_opt)_m'] ?? m['H(i_opt)'] ?? 0;
+        return Math.round((typeof v === 'number' ? v : (parseFloat(v) || 0)) * 10) / 10;
+      });
+
+      const horizArr = arr.map((m, i) => {
+        const v = m['Hh_m'] ?? m['H_sun_m'] ?? m['H(h)_m'] ?? m['Hh'] ?? m['H_sun'] ?? m['H(h)'] ?? 0;
+        return Math.round((typeof v === 'number' ? v : (parseFloat(v) || 0)) * 10) / 10;
+      });
+
+      const tiltedSum = tiltedArr.reduce((a, b) => a + b, 0);
+      const horizSum  = horizArr.reduce((a, b) => a + b, 0);
+      console.log(`MRcalc parsed: tiltedSum=${tiltedSum.toFixed(0)} horizSum=${horizSum.toFixed(0)}`);
+
+      if (tiltedSum === 0 && horizSum === 0) {
+        console.error('MRcalc: all zeros! First record:', JSON.stringify(arr[0]));
+        if (dbgEl) dbgEl.textContent = `MRcalc zero! Fields: ${fields} | Sample: ${JSON.stringify(arr[0])}`;
+      }
+
+      pvgisRadData = { tilted: tiltedArr, horiz: horizArr };
+      if (radStatusEl) radStatusEl.textContent = (LANG==='pl'
+        ? `✅ Radiacja załadowana (H=${horizSum.toFixed(0)} kWh/m²/yr)`
+        : `✅ Radiation loaded (H=${horizSum.toFixed(0)} kWh/m²/yr)`);
+      update();
+      return;
+
+    } catch(e) {
+      console.warn(`MRcalc proxy ${pi+1} error:`, e.message);
+    }
+  }
+
+  // All proxies failed
+  if (radStatusEl) radStatusEl.textContent = (LANG==='pl'
+    ? '⚠️ Błąd pobierania radiacji (wszystkie proxy)'
+    : '⚠️ Radiation fetch failed (all proxies)');
+  pvgisRadData = null;
+}
+
+
+function clearPVGIS() {
+  pvgisData = null;
+  pvgisRadData = null;
+  document.getElementById('pvgis-ok').style.display = 'none';
+  document.getElementById('pvgis-err').style.display = 'none';
+  document.getElementById('pvgis-log').style.display = 'none';
+  update();
+}
+
+function closeErr() {
+  document.getElementById('pvgis-err').style.display = 'none';
+}
+
+function syncPVGISFromCalc() {
+  const geo = calcGeometry(P);
+  document.getElementById('pvgis-tilt').value = Math.round(parseFloat(geo.effTilt));
+  // Convert from compass azimuth (N=0, S=180) to PVGIS aspect (S=0, E=-90, W=90)
+  document.getElementById('pvgis-az').value = Math.round(parseInt(geo.effAz) - 180);
+  updatePVGISInfo();
+}
+
+function updatePVGISInfo() {
+  const geo = calcGeometry(P);
+  const tilt = document.getElementById('pvgis-tilt').value;
+  const az   = document.getElementById('pvgis-az').value;
+  document.getElementById('pvgis-info').textContent =
+    `β=${tilt}° Az_PVGIS=${az}° · ${P.lat.toFixed(4)}°N ${P.lon.toFixed(4)}°E`;
+}
+
+// ════════════════════════════════════════════════════════════
+// PVGIS MONTHLY PARSE
+// ════════════════════════════════════════════════════════════
+function getPVGISMonthly() {
+  if (!pvgisData) return null;
+  const arr = pvgisData.outputs?.monthly?.fixed ?? pvgisData.outputs?.monthly;
+  if (!Array.isArray(arr)) return null;
+  return arr.map((m, i) => {
+    // Try every known PVGIS v5_2 field name for irradiation on tilted plane
+    const irr = m['H(i)']       // tilted plane irradiation (most common in v5_2)
+             ?? m['H(i_opt)']   // optimal tilt
+             ?? m['H(h)']       // horizontal
+             ?? m['Hd']         // diffuse horizontal
+             ?? m['H_sun']      // legacy
+             ?? m.irradiation
+             ?? 0;
+    return { month: MN[i], kwh: m.E_m ?? 0, irr, days: DAYS[i] };
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// MAP (LEAFLET)
+// ════════════════════════════════════════════════════════════
+let map = null, marker = null;
+function initMap() {
+  if (map) return; // guard: do not init twice
+  map = L.map('map', { zoomControl: true }).setView([P.lat, P.lon], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19,
+  }).addTo(map);
+  const icon = L.divIcon({
+    html: '<div style="background:#f59e0b;width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(0,0,0,.6);margin:-2px"></div>',
+    className: '',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+  marker = L.marker([P.lat, P.lon], { icon, draggable: true }).addTo(map);
+  marker.on('dragend', e => {
+    const ll = e.target.getLatLng();
+    setCoords(ll.lat, ll.lng);
+  });
+  map.on('click', e => setCoords(e.latlng.lat, e.latlng.lng));
+  // Critical: force Leaflet to recalculate container size after CSS layout completes
+  setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+}
+
+function setCoords(lat, lon) {
+  P.lat = Math.round(lat * 100000) / 100000;
+  P.lon = Math.round(lon * 100000) / 100000;
+  document.getElementById('inp-lat').value = P.lat;
+  document.getElementById('inp-lon').value = P.lon;
+  if (marker) marker.setLatLng([P.lat, P.lon]);
+  updateCoordDisplay();
+  updatePVGISInfo();
+  update();
+}
+
+function applyCoords() {
+  const lat = parseFloat(document.getElementById('inp-lat').value);
+  const lon = parseFloat(document.getElementById('inp-lon').value);
+  if (!isNaN(lat) && !isNaN(lon)) {
+    setCoords(lat, lon);
+    if (map) map.setView([lat, lon], map.getZoom()); // guard: map may not be ready
+  }
+}
+
+function updateCoordDisplay() {
+  document.getElementById('disp-lat').textContent = `${P.lat.toFixed(5)}°N`;
+  document.getElementById('disp-lon').textContent = `${P.lon.toFixed(5)}°E`;
+  document.getElementById('gmap-link').href = `https://maps.google.com/?q=${P.lat},${P.lon}`;
+}
+
+// ════════════════════════════════════════════════════════════
+// COMPASS
+// ════════════════════════════════════════════════════════════
+let compassDrag = false;
+
+function drawCompass(az) {
+  const svg = document.getElementById('compass-svg');
+  const cx = 80, cy = 80, r = 60;
+  const D2 = Math.PI/180;
+  const dot = { x: cx + r*Math.sin(az*D2), y: cy - r*Math.cos(az*D2) };
+  const dirs = [{a:0,l:'N',c:'#64748b'},{a:90,l:'E',c:'#475569'},{a:180,l:'S',c:'#ef4444'},{a:270,l:'W',c:'#475569'}];
+
+  let ticks = '';
+  for (let i = 0; i < 36; i++) {
+    const a = i*10, big = i%9===0;
+    const ri = r+2, ro = r+(big?10:5);
+    ticks += `<line x1="${cx+ri*Math.sin(a*D2)}" y1="${cy-ri*Math.cos(a*D2)}" x2="${cx+ro*Math.sin(a*D2)}" y2="${cy-ro*Math.cos(a*D2)}" stroke="${big?'#334155':'#1e3a5f'}" stroke-width="${big?1.2:0.7}"/>`;
+  }
+  const minorLabels = [30,60,120,150,210,240,300,330].map(a => {
+    const px=cx+(r+14)*Math.sin(a*D2), py=cy-(r+14)*Math.cos(a*D2);
+    return `<text x="${px}" y="${py+3}" text-anchor="middle" fill="#1e3a5f" font-size="8">${a}</text>`;
+  }).join('');
+  const cardinals = dirs.map(({a,l,c}) => {
+    const px=cx+(r+18)*Math.sin(a*D2), py=cy-(r+18)*Math.cos(a*D2);
+    return `<text x="${px}" y="${py+4}" text-anchor="middle" fill="${c}" font-size="${a===0||a===180?14:12}" font-weight="800">${l}</text>`;
+  }).join('');
+
+  // N,E,W labels; S placed below needle endpoint to avoid overlap
+  const dirsNEW = [{a:0,l:'N',col:'#64748b'},{a:90,l:'E',col:'#475569'},{a:270,l:'W',col:'#475569'}];
+  const cardNEW = dirsNEW.map(({a,l,col}) => {
+    const px=cx+(r+18)*Math.sin(a*D2), py=cy-(r+18)*Math.cos(a*D2);
+    return `<text x="${px}" y="${py+4}" text-anchor="middle" fill="${col}" font-size="${a===0?14:12}" font-weight="800">${l}</text>`;
+  }).join('');
+  // S label: place at bottom of compass ring, outside ticks
+  const sLbl = `<text x="${cx}" y="${cy+r+16}" text-anchor="middle" fill="#ef4444" font-size="14" font-weight="800">S</text>`;
+
+  svg.innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="72" fill="#070f1a" stroke="#1e3a5f" stroke-width="1.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1e3a5f" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${r*0.55}" fill="none" stroke="#0f2744" stroke-width="0.5" stroke-dasharray="3,3"/>
+    ${ticks}${minorLabels}${cardNEW}${sLbl}
+    <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy+r}" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+    <line x1="${cx}" y1="${cy}" x2="${dot.x}" y2="${dot.y}" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="${dot.x}" cy="${dot.y}" r="6" fill="#f59e0b" stroke="#060e18" stroke-width="1.5"/>
+    <circle cx="${cx}" cy="${cy}" r="4" fill="#1e3a5f" stroke="#60a5fa" stroke-width="1.5"/>
+    <rect x="${cx-19}" y="${cy-22}" width="38" height="17" rx="3" fill="rgba(6,14,24,0.85)"/>
+    <text x="${cx}" y="${cy-9}" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="800">${az}°</text>
+  `;
+}
+
+function xy2az(x, y) {
+  const cx=80, cy=80;
+  let az = Math.atan2(x-cx, -(y-cy)) * R;
+  if (az < 0) az += 360;
+  return Math.round(az);
+}
+
+function compassSetAz(az) {
+  P.panelAz = az;
+  document.getElementById('compass-input').value = az;
+  drawCompass(az);
+  updateAzHint(az);
+  document.querySelectorAll('.az-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.az) === az);
+  });
+  update();
+}
+
+function updateAzHint(az) {
+  const diff = Math.abs(az - 180);
+  const dir = az < 180 ? t('azEast') : t('azWest');
+  const hint = diff === 0 ? t('azIdeal') : `${diff}° ${t('azFrom')} (${dir})`;
+  document.getElementById('az-hint').textContent = hint;
+}
+
+function initCompass() {
+  const svg = document.getElementById('compass-svg');
+  drawCompass(P.panelAz);
+
+  svg.addEventListener('mousedown', e => {
+    compassDrag = true;
+    const rect = svg.getBoundingClientRect();
+    const sx = 160/rect.width, sy = 160/rect.height;
+    compassSetAz(xy2az((e.clientX-rect.left)*sx, (e.clientY-rect.top)*sy));
+  });
+  document.addEventListener('mousemove', e => {
+    if (!compassDrag) return;
+    const rect = svg.getBoundingClientRect();
+    const sx = 160/rect.width, sy = 160/rect.height;
+    compassSetAz(xy2az((e.clientX-rect.left)*sx, (e.clientY-rect.top)*sy));
+  });
+  document.addEventListener('mouseup', () => { compassDrag = false; });
+  svg.addEventListener('touchstart', e => {
+    compassDrag = true;
+    const t = e.touches[0];
+    const rect = svg.getBoundingClientRect();
+    compassSetAz(xy2az((t.clientX-rect.left)*160/rect.width, (t.clientY-rect.top)*160/rect.height));
+  });
+  svg.addEventListener('touchmove', e => {
+    if (!compassDrag) return;
+    const t = e.touches[0];
+    const rect = svg.getBoundingClientRect();
+    compassSetAz(xy2az((t.clientX-rect.left)*160/rect.width, (t.clientY-rect.top)*160/rect.height));
+  });
+  svg.addEventListener('touchend', () => { compassDrag = false; });
+
+  document.getElementById('compass-input').addEventListener('change', e => {
+    compassSetAz(Math.max(0, Math.min(359, parseInt(e.target.value)||0)));
+  });
+
+  // Presets
+  const presets = [{a:180,l:'S'},{a:135,l:'SE'},{a:225,l:'SW'},{a:90,l:'E'},{a:270,l:'W'}];
+  const wrap = document.getElementById('az-presets');
+  presets.forEach(({a,l}) => {
+    const b = document.createElement('button');
+    b.className = 'az-btn';
+    b.dataset.az = a;
+    b.textContent = l;
+    b.onclick = () => compassSetAz(a);
+    wrap.appendChild(b);
+  });
+  updateAzHint(P.panelAz);
+}
+
+// Sliders handled via inline oninput in HTML
+
+// ════════════════════════════════════════════════════════════
+// NUMBER STEPPERS
+// ════════════════════════════════════════════════════════════
+const numState = { rows: 4, cols: 3 };
+function stepNum(key, delta, min, max) {
+  numState[key] = Math.max(min, Math.min(max, numState[key] + delta));
+  P[key] = numState[key];
+  document.getElementById(`num-${key}`).textContent = numState[key];
+  update();
+}
+
+// Generic P stepper (for minGap etc.)
+function stepP(key, delta, min, max) {
+  P[key] = Math.max(min, Math.min(max, (P[key] ?? 0) + delta));
+  update();
+}
+
+// ── Roof slope handlers — preserve absolute beta ──────────
+// When roofAlong changes, adjust panelTiltRel so that the
+// absolute panel tilt (effTilt) stays the same as before.
+// effTilt ≈ panelTiltRel + roofAlong  (simplified, no cross)
+// So: new panelTiltRel = targetBeta - newRoofAlong
+let _targetBeta = 35; // tracks desired absolute beta
+
+function onRoofAlongChange(newRoofAlong) {
+  // Compute current effTilt before change to capture target
+  const prevEff = parseFloat(calcEffTiltAz(P.panelTiltRel, P.panelAz, P.roofAlong, P.roofCross).effTilt);
+  // If it's the first change, use current effTilt as target
+  if (!P._betaLocked) { _targetBeta = prevEff; P._betaLocked = true; }
+  // New panelTiltRel to keep effTilt ≈ _targetBeta
+  // effTilt = asin(sin(panelTiltRel + roofAlong) * cos(roofCross))
+  // We invert: sin(panelTiltRel + roofAlong) = sin(targetBeta) / cos(roofCross)
+  const rC = P.roofCross * D;
+  const sinTarget = Math.sin(_targetBeta * D) / Math.max(0.001, Math.cos(rC));
+  const clampedSin = Math.max(-1, Math.min(1, sinTarget));
+  const newTiltRelRad = Math.asin(clampedSin) - newRoofAlong * D;
+  const newTiltRel = Math.round(newTiltRelRad * R * 10) / 10;
+  P.roofAlong = newRoofAlong;
+  P.panelTiltRel = Math.max(0, Math.min(70, newTiltRel));
+  // Update tilt slider display
+  const tiltSlider = document.getElementById('sl-tilt');
+  if (tiltSlider) { tiltSlider.value = P.panelTiltRel; document.getElementById('lbl-tilt').textContent = P.panelTiltRel.toFixed(1)+'°'; }
+  document.getElementById('lbl-roof-along').textContent = newRoofAlong + '°';
+  document.getElementById('lbl-beta-abs').textContent = _targetBeta.toFixed(1) + '°';
+  update();
+}
+
+function onRoofCrossChange(newRoofCross) {
+  P.roofCross = newRoofCross;
+  document.getElementById('lbl-roof-cross').textContent = newRoofCross + '°';
+  // Re-apply beta locking with new cross slope
+  if (P._betaLocked) {
+    const rC = newRoofCross * D;
+    const sinTarget = Math.sin(_targetBeta * D) / Math.max(0.001, Math.cos(rC));
+    const clampedSin = Math.max(-1, Math.min(1, sinTarget));
+    const newTiltRelRad = Math.asin(clampedSin) - P.roofAlong * D;
+    P.panelTiltRel = Math.max(0, Math.min(70, newTiltRelRad * R));
+    const tiltSlider = document.getElementById('sl-tilt');
+    if (tiltSlider) { tiltSlider.value = P.panelTiltRel; document.getElementById('lbl-tilt').textContent = P.panelTiltRel.toFixed(1)+'°'; }
+  }
+  update();
+}
+
+// When user manually changes tilt slider, update the target beta
+function onTiltChange(v) {
+  P.panelTiltRel = +v;
+  document.getElementById('lbl-tilt').textContent = v + '°';
+  // Recompute _targetBeta from new setting
+  _targetBeta = parseFloat(calcEffTiltAz(P.panelTiltRel, P.panelAz, P.roofAlong, P.roofCross).effTilt);
+  P._betaLocked = true;
+  update();
+}
+
+// ── Row pitch / gap controls ───────────────────────────────
+function onRowPitchInput(val) {
+  const v = parseFloat(val);
+  P.rowPitchOverride = (!val || isNaN(v)) ? null : v;
+  update();
+}
+
+function resetRowPitch() {
+  P.rowPitchOverride = null;
+  document.getElementById('inp-rowPitch').value = '';
+  update();
+}
+
+function updateSpacingDisplay() {
+  document.getElementById('disp-minGap').textContent = P.minGap;
+}
+
+// ════════════════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════════════════
+function setTab(t) {
+  currentTab = t;
+  ['side','top','view3d','radiation','yield','calc'].forEach(id => {
+    const el = document.getElementById(`tab-${id}`);
+    if (!el) return;
+    el.style.display = id === t ? 'block' : 'none';
+    if (id === t) { el.classList.remove('fade'); void el.offsetWidth; el.classList.add('fade'); }
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === t);
+  });
+  renderCurrentTab();
+}
+
+// ════════════════════════════════════════════════════════════
+// BAR CHART
+// ════════════════════════════════════════════════════════════
+function barChart(data, vk, lk, color, unit, title) {
+  const max = Math.max(...data.map(d => d[vk]), 1);
+  const bars = data.map(d => {
+    const h = Math.round((d[vk]/max)*86);
+    const lbl = d[vk] < 10 ? d[vk].toFixed(1) : Math.round(d[vk]);
+    return `<div class="barchart-col">
+      <div class="barchart-lbl-top" style="color:${color}">${lbl}</div>
+      <div class="barchart-bar" style="height:${h}%;background:${color};opacity:${0.5+0.5*(d[vk]/max)}"></div>
+      <div class="barchart-lbl-bot">${d[lk]}</div>
+    </div>`;
+  }).join('');
+  return `<div class="barchart">
+    ${title ? `<div class="barchart-title">${title}</div>` : ''}
+    <div class="barchart-bars">${bars}</div>
+    ${unit ? `<div class="barchart-unit">${unit}</div>` : ''}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// SVG SIDE VIEW
+// ════════════════════════════════════════════════════════════
+function renderSideView(p, geo) {
+  const { projH, projD, rowPitch, sunElev, tiltRad, sunRad } = geo;
+  const roofY = 268, ox = 44, thick = 7;
+  // Scale based on rowPitch width AND the larger of projH or projD (handles flat panels correctly)
+  const vertRef = Math.max(projH, 30); // min 30mm so scale doesn't blow up at beta=0
+  const scale = Math.min(560 / (rowPitch * 2.3 + 1), 160 / vertRef);
+  const s = mm => mm * scale;
+  const nx = Math.sin(tiltRad), ny = -Math.cos(tiltRad);
+  const roofAlong = p.roofAlong || 0;
+  const roofSlopeY = (x) => roofY + (x - ox) * Math.tan(roofAlong * D);
+
+  const mkP = (fx) => {
+    const fy = roofSlopeY(fx);
+    const rx = fx + s(projD), ry = roofSlopeY(rx);
+    const ty = fy - s(projH);
+    return { p1:[fx,fy], p2:[rx,ty], p3:[rx+thick*nx,ty+thick*ny], p4:[fx+thick*nx,fy+thick*ny], rearY:ry };
+  };
+  const r1 = mkP(ox), r2 = mkP(ox + s(rowPitch));
+  const pts = r => [r.p1,r.p2,r.p3,r.p4].map(p=>p.join(',')).join(' ');
+  const CS = ['#e74c3c','#2ecc71','#9b59b6','#3498db','#1abc9c','#f59e0b','#f97316'];
+
+  const markers = CS.map(c =>
+    `<marker id="sv${c.slice(1)}" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L6,3 z" fill="${c}"/></marker>`).join('');
+
+  const M = c => `url(#sv${c.slice(1)})`;
+
+  const DL = (x1,y1,x2,y2,col,lbl,tx,ty) =>
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="1.5" marker-start="${M(col)}" marker-end="${M(col)}"/>
+     <text x="${tx||((x1+x2)/2)}" y="${ty||((y1+y2)/2+4)}" fill="${col}" font-size="11" font-weight="700" text-anchor="middle" paint-order="stroke" stroke="#060e18" stroke-width="4">${lbl}</text>`;
+
+  // Sun
+  const sx=r1.p2[0]-20, sy=r1.p2[1]-60;
+  const sunRays = [0,45,90,135,180,225,270,315].map(a =>
+    `<line x1="${sx+17*Math.cos(a*D)}" y1="${sy+17*Math.sin(a*D)}" x2="${sx+23*Math.cos(a*D)}" y2="${sy+23*Math.sin(a*D)}" stroke="#f59e0b" stroke-width="1.5"/>`).join('');
+
+  return `<svg viewBox="0 0 700 390" width="100%" style="display:block">
+    <defs>${markers}</defs>
+    <line x1="0" y1="${roofSlopeY(0)}" x2="700" y2="${roofSlopeY(700)}" stroke="#334155" stroke-width="2.5"/>
+    ${Array.from({length:24},(_,i)=>`<line x1="${i*30}" y1="${roofSlopeY(i*30)}" x2="${i*30-12}" y2="${roofSlopeY(i*30)+14}" stroke="#1e3a5f" stroke-width="1.2"/>`).join('')}
+    <line x1="0" y1="${roofY}" x2="700" y2="${roofY}" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="4,4" opacity="0.4"/>
+    <text x="670" y="${roofSlopeY(670)-5}" fill="#334155" font-size="10">${t('sideRoof')} ${roofAlong>0?'+':''}${roofAlong}°</text>
+    <line x1="${r1.p2[0]}" y1="${r1.p2[1]}" x2="${r2.p1[0]}" y2="${r2.p1[1]}" stroke="#fbbf24" stroke-width="2" stroke-dasharray="8,5" opacity="0.9"/>
+    <text x="${(r1.p2[0]+r2.p1[0])/2+6}" y="${(r1.p2[1]+r2.p1[1])/2-10}" fill="#fbbf24" font-size="9" font-style="italic">promień 21 XII</text>
+    <circle cx="${sx}" cy="${sy}" r="13" fill="#fde68a" stroke="#f59e0b" stroke-width="2"/>
+    ${sunRays}
+    <path d="M ${r2.p1[0]+44},${r2.p1[1]} A 44,44 0 0,0 ${r2.p1[0]+44*Math.cos(-sunRad)},${r2.p1[1]-44*Math.sin(sunRad)}" fill="none" stroke="#fbbf24" stroke-width="1.5"/>
+    <text x="${r2.p1[0]+58}" y="${r2.p1[1]-12}" fill="#fbbf24" font-size="11" font-weight="700">α=${sunElev}°</text>
+    ${[r1,r2].map((r,i)=>`
+      <polygon points="${pts(r)}" fill="#3b82f6" fill-opacity="0.4" stroke="#60a5fa" stroke-width="2"/>
+      <text x="${(r.p1[0]+r.p2[0])/2-8}" y="${(r.p1[1]+r.p2[1])/2+4}" fill="#bfdbfe" font-size="10" font-weight="700" text-anchor="middle">W.${i+1}</text>
+      <rect x="${r.p2[0]-3}" y="${r.p2[1]}" width="6" height="${Math.min(36,s(projH)*0.4)}" fill="#475569" rx="1"/>
+      <rect x="${r.p1[0]-5}" y="${r.p1[1]-1}" width="10" height="6" fill="#475569" rx="1"/>
+    `).join('')}
+    ${roofAlong !== 0 ? `
+      <path d="M ${ox+34},${roofSlopeY(ox)} A 34,34 0 0,${roofAlong>0?0:1} ${ox+34*Math.cos(-roofAlong*D)},${roofSlopeY(ox)+34*Math.sin(-roofAlong*D)}" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="${ox+42}" y="${roofSlopeY(ox)+6}" fill="#22c55e" font-size="10" font-weight="700">${roofAlong>0?'+':''}${roofAlong}°</text>
+    ` : ''}
+    <path d="M ${ox+44},${r1.p1[1]} A 44,44 0 0,0 ${ox+44*Math.cos(tiltRad)},${r1.p1[1]-44*Math.sin(tiltRad)}" fill="none" stroke="#f97316" stroke-width="2"/>
+    <text x="${ox+56}" y="${r1.p1[1]-16}" fill="#f97316" font-size="12" font-weight="800">β=${geo.effTilt}°</text>
+    ${DL(r1.p2[0]+13, r1.p2[1], r1.p2[0]+13, r1.p1[1], CS[1], '', 0, 0)}
+    <text x="${r1.p2[0]+20}" y="${(r1.p2[1]+r1.p1[1])/2-5}" fill="${CS[1]}" font-size="11" font-weight="700">h=${geo.projH}mm</text>
+    ${DL(r1.p1[0], r1.p1[1]+24, r1.p2[0], r1.p1[1]+24, CS[2], `d=${geo.projD}mm`, null, r1.p1[1]+38)}
+    ${DL(r1.p2[0], r1.p1[1]+48, r2.p1[0], r2.p1[1]+48, CS[3], `gap=${geo.freeGap}mm`, null, r1.p1[1]+62)}
+    ${DL(r1.p1[0], r1.p1[1]+83, r2.p1[0], r2.p1[1]+83, CS[4], `rozstaw=${geo.rowPitch}mm`, null, r1.p1[1]+97)}
+  </svg>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// SVG TOP VIEW
+// ════════════════════════════════════════════════════════════
+function renderTopView(p, geo) {
+  const { rows, cols, panelW } = p;
+  const { rowPitch, projD, totalDepth, totalWidth } = geo;
+  const scale = Math.min(590/(cols*panelW), 250/totalDepth, 0.26);
+  const s = mm => mm*scale;
+  const ox=52, oy=26;
+  const colW=s(panelW), rowH=s(projD), pitch=s(rowPitch);
+  const svgW=Math.max(ox+s(totalWidth)+130, 460);
+  const svgH=Math.max(oy+s(totalDepth)+85, 250);
+  const MS=['#e74c3c','#1abc9c','#9b59b6','#f59e0b'];
+  const mks = MS.map(c=>`<marker id="tv${c.slice(1)}" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="${c}"/></marker>`).join('');
+  const M=c=>`url(#tv${c.slice(1)})`;
+  const DL=(x1,y1,x2,y2,col,lbl,tx,ty)=>
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="1.5" marker-start="${M(col)}" marker-end="${M(col)}"/>
+     ${lbl?`<text x="${tx||((x1+x2)/2)}" y="${ty||((y1+y2)/2+4)}" fill="${col}" font-size="11" font-weight="700" text-anchor="middle" paint-order="stroke" stroke="#060e18" stroke-width="3">${lbl}</text>`:''}`;
+  const panels = Array.from({length:rows},(_,r)=>Array.from({length:cols},(_,c)=>{
+    const x=ox+c*colW, y=oy+r*pitch;
+    return `<rect x="${x}" y="${y}" width="${colW}" height="${rowH}" fill="${r%2===0?'rgba(59,130,246,0.38)':'rgba(99,102,241,0.35)'}" stroke="#60a5fa" stroke-width="1.5" rx="2"/>
+      ${colW>22&&rowH>12?`<text x="${x+colW/2}" y="${y+rowH/2+4}" fill="#bfdbfe" font-size="${Math.min(10,colW/5,rowH/2.2)}" font-weight="700" text-anchor="middle">${r+1},${c+1}</text>`:''}`;
+  }).join('')).join('');
+  return `<svg viewBox="0 0 ${svgW} ${svgH}" width="100%" style="display:block">
+    <defs>${mks}</defs>
+    ${panels}
+    ${DL(ox,oy-14,ox+s(totalWidth),oy-14,MS[0],`${(totalWidth/1000).toFixed(2)} m`,null,oy-20)}
+    ${DL(ox+s(totalWidth)+14,oy,ox+s(totalWidth)+14,oy+s(totalDepth),MS[1],'',null,null)}
+    <text x="${ox+s(totalWidth)+22}" y="${oy+s(totalDepth)/2-4}" fill="${MS[1]}" font-size="11" font-weight="700">${(totalDepth/1000).toFixed(2)}m</text>
+    ${rows>=2?DL(ox-36,oy,ox-36,oy+pitch,MS[3],'',null,null):''}
+    ${rows>=2?`<text x="${ox-44}" y="${oy+pitch/2}" fill="${MS[3]}" font-size="10" font-weight="700" text-anchor="end">${geo.rowPitch}mm</text>`:''}
+    <g transform="translate(${ox+s(totalWidth)+80},${oy+s(totalDepth)/2})">
+      <circle cx="0" cy="0" r="22" fill="#070f1a" stroke="#1e3a5f" stroke-width="1.5"/>
+      <polygon points="0,-17 5,-2 0,-7 -5,-2" fill="#ef4444"/>
+      <polygon points="0,17 5,2 0,7 -5,2" fill="#475569"/>
+      <text x="0" y="-25" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="800">S</text>
+    </g>
+  </svg>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// RENDER TABS
+// ════════════════════════════════════════════════════════════
+function renderCurrentTab() {
+  const geo = calcGeometry(P);
+  const yld = calcYield(P);
+  const pvgisM = getPVGISMonthly();
+
+  const activeYield = pvgisM ? {
+    monthly: pvgisM,
+    total: pvgisData.outputs.totals?.fixed?.E_y ?? pvgisM.reduce((s,m)=>s+m.kwh,0),
+    specific: (pvgisData.outputs.totals?.fixed?.E_y ?? 0) / yld.peakPowerKw,
+    source: t('srcPVGIS'),
+  } : {
+    monthly: yld.monthlyYield,
+    total: yld.totalYield,
+    specific: yld.specificYield,
+    source: t('srcModel'),
+  };
+
+  if (currentTab === 'side') {
+        document.getElementById('side-desc').innerHTML = t('sideDesc',{az:P.panelAz,tilt:geo.effTilt});
+    document.getElementById('side-svg-wrap').innerHTML = renderSideView(P, geo);
+    document.getElementById('side-legend').innerHTML =
+      [['#e74c3c','legendH'],['#2ecc71','legendh'],['#9b59b6','legendd'],['#3498db','legendGap'],
+       ['#1abc9c','legendPitch'],['#f97316','legendBeta'],['#fbbf24','legendAlpha'],['#22c55e','legendRoof']].map(([c2,k])=>
+        `<div class="legend-item"><div class="legend-dot" style="background:${c2}"></div><span class="legend-lbl">${t(k)}</span></div>`).join('');
+  }
+
+  if (currentTab === 'top') {
+        document.getElementById('top-desc').textContent = t('topDesc',{r:P.rows,c:P.cols,n:P.rows*P.cols,w:(geo.totalWidth/1000).toFixed(2),d:(geo.totalDepth/1000).toFixed(2)});
+    document.getElementById('top-svg-wrap').innerHTML = renderTopView(P, geo);
+  }
+
+  if (currentTab === 'yield') {
+    const src = pvgisM ? 'source-pvgis' : 'source-model';
+    const srcTxt = activeYield.source;
+
+    document.getElementById('yield-kpis').innerHTML =
+      [[t('yieldAnnual'), `${Math.round(activeYield.total).toLocaleString()} kWh`, '#f59e0b'],
+       [t('yieldSpec'), `${Math.round(activeYield.specific)} kWh/kWp`, '#3b82f6'],
+       [t('yieldPeak'), `${yld.peakPowerKw.toFixed(2)} kWp`, '#22c55e'],
+       [t('yieldPanels'), `${yld.nPanels} ${t('pcs')}`, '#a78bfa'],
+       [t('yieldArea'), `${yld.totalArea} m²`, '#fb923c'],
+       [t('yieldEffBAz'), `${geo.effTilt}° / ${geo.effAz}°`, '#f59e0b'],
+      ].map(([l,v,c])=>`<div class="kpi-card"><div class="kpi-lbl">${l}</div><div class="kpi-val" style="color:${c}">${v}</div></div>`).join('');
+
+    const irrData = pvgisM ? pvgisM.map(m=>({month:m.month,irr:m.irr})) : yld.monthlyIrr;
+    document.getElementById('yield-charts').innerHTML =
+      `<div class="chart-card">${barChart(activeYield.monthly, 'kwh', 'month', '#f59e0b', t('kwhPerMonth'), `${t('yieldProd')} (${srcTxt})`)}</div>
+       <div class="chart-card">${barChart(irrData, 'irr', 'month', '#3b82f6', t('kwhPerM2'), t('yieldIrr'))}</div>`;
+
+    const irrDataFull = pvgisM || yld.monthlyIrr;
+    document.getElementById('table-source').innerHTML = srcTxt;
+    document.getElementById('table-source').className = `source-badge ${src}`;
+    document.getElementById('yield-tbody').innerHTML =
+      activeYield.monthly.map((m,i)=>{
+        const irr = irrDataFull[i].irr;
+        return `<tr>
+          <td style="color:var(--text);font-weight:600">${m.month}</td>
+          <td style="color:var(--blue);text-align:right;font-family:'Space Mono',monospace">${typeof irr==='number'?irr.toFixed(1):'-'}</td>
+          <td style="color:var(--yellow);text-align:right;font-family:'Space Mono',monospace;font-weight:700">${Math.round(m.kwh)}</td>
+          <td style="color:var(--text3);text-align:right">${DAYS[i]}</td>
+          <td style="color:var(--text3);text-align:right;font-family:'Space Mono',monospace">${(m.kwh/DAYS[i]).toFixed(1)}</td>
+        </tr>`;
+      }).join('') +
+      `<tr>
+        <td style="color:var(--text);font-weight:800">${t("yieldYear")}</td>
+        <td style="color:var(--blue);text-align:right;font-family:'Space Mono',monospace">${irrDataFull.reduce((s,m)=>s+(m.irr||0),0).toFixed(0)}</td>
+        <td style="color:var(--yellow);text-align:right;font-family:'Space Mono',monospace;font-size:13px">${Math.round(activeYield.total).toLocaleString()}</td>
+        <td style="color:var(--text3);text-align:right">365</td>
+        <td style="color:var(--text3);text-align:right;font-family:'Space Mono',monospace">${(activeYield.total/365).toFixed(1)}</td>
+      </tr>`;
+
+    document.getElementById('yield-warn').style.display = pvgisM ? 'none' : 'block';
+    document.getElementById('yield-warn').textContent = t('yieldWarn',{lat:P.lat.toFixed(2)});
+
+    // Shading / roof note
+    const noteBox = document.getElementById('yield-shading-note');
+    if (noteBox) {
+      const roofNote = (P.roofAlong!==0||P.roofCross!==0)
+        ? t('roofSlope',{a:(P.roofAlong>0?'+':'')+P.roofAlong,c:(P.roofCross>0?'+':'')+P.roofCross,b:geo.effTilt})+' '
+        : '';
+      noteBox.textContent = roofNote + yld.shadingNote;
+      noteBox.style.display = 'block';
+    }
+  }
+
+  if (currentTab === 'calc') {
+    const steps = [
+      { col:'#fbbf24', title:t('calcStep1t'),
+        formula:`α = 90° − φ − 23,45° = 90° − ${P.lat.toFixed(2)}° − 23,45°`,
+        result:`α = ${geo.sunElev}°` },
+      { col:'#22c55e', title:t('calcStep2t'),
+        formula:`β_eff = arcsin(sin(β+α_along) × cos(α_cross)) = arcsin(sin(${P.panelTiltRel}°+${P.roofAlong}°) × cos(${P.roofCross}°))`,
+        result:`β_eff = ${geo.effTilt}°` },
+      { col:'#f59e0b', title:t('calcStep3t'),
+        formula:`Az_eff = ${P.panelAz}° + arctan(sin(${P.roofCross}°) / (cos(β+α_along)×cos(${P.roofCross}°)))`,
+        result:`Az_eff = ${geo.effAz}°` },
+      { col:'#2ecc71', title:t('calcStep4t'),
+        formula:`h = H × sin(β_eff) = ${P.panelH} × sin(${geo.effTilt}°)`,
+        result:`h = ${geo.projH} mm` },
+      { col:'#9b59b6', title:t('calcStep5t'),
+        formula:`d = H × cos(β_eff) = ${P.panelH} × cos(${geo.effTilt}°)`,
+        result:`d = ${geo.projD} mm` },
+      { col:'#1abc9c', title:t('calcStep6t'),
+        formula:`R_auto = max(h/tan(α), d+G_min) = max(${geo.projH}/tan(${geo.sunElev}°), ${geo.projD}+${P.minGap}) = ${geo.autoPitch} mm`,
+        result:`${t('calcRUsed',{r:geo.rowPitch})}${P.rowPitchOverride ? ' ← '+t('manual') : ' ('+t('autoStr')+')'}` },
+      { col:'#3498db', title:t('calcStep7t'),
+        formula:`G = R − d = ${geo.rowPitch} − ${geo.projD}   (min. G = ${P.minGap} mm)`,
+        result:`G = ${geo.freeGap} mm` },
+      { col:'#f97316', title:t('calcStep7bt'),
+        formula:`F_cień(h) = max(0, (h/tan(elev) − G) / d)  → redukuje składową bezpośrednią Gb`,
+        result: yld.shadingNote },
+      { col:'#e74c3c', title:t('calcStep8t',{r:P.rows,c:P.cols}),
+        formula:`Depth = (${P.rows}−1)×${geo.rowPitch} + ${geo.projD} | Width = ${P.cols}×${P.panelW}`,
+        result:`${(geo.totalDepth/1000).toFixed(2)} m × ${(geo.totalWidth/1000).toFixed(2)} m` },
+      { col:'#f59e0b', title:t('calcStep9t'),
+        formula:`P = ${yld.nPanels} × ${P.panelPower} W`,
+        result:`P = ${yld.peakPowerKw.toFixed(2)} kWp` },
+      { col:'#60a5fa', title:t('calcStep10t'),
+        formula:`cos(θ) = cos(elev)·sin(β_eff)·cos(Az_sun−${geo.effAz}°) + sin(elev)·cos(β_eff) → Σ co 0,5h`,
+        result:t('calcIntegrated') },
+      { col:'#22c55e', title:t('calcStep11t'),
+        formula:`E_yr = Σ G_tilt × ${((P.panelW/1000)*(P.panelH/1000)).toFixed(2)}m² × ${yld.nPanels} × 0.80`,
+        result:`E_yr ≈ ${Math.round(yld.totalYield).toLocaleString()} ${t('kwhPerYear')}` },
+      { col:'#22c55e', title:t('calcStep12t'),
+        formula:`lat=${P.lat.toFixed(4)}, lon=${P.lon.toFixed(4)}, angle=${geo.effTilt}°, aspect=${parseInt(geo.effAz)-180}°, loss=14%`,
+        result: pvgisM
+          ? `E_y = ${Math.round(activeYield.total).toLocaleString()} ${t('kwhPerYear')} (PVGIS)`
+          : '→ kliknij „Pobierz dane PVGIS"' },
+    ];
+    document.getElementById('calc-steps').innerHTML = steps.map(s =>
+      `<div class="calc-step" style="border-color:${s.col}">
+        <div class="cs-title" style="color:${s.col}">${s.title}</div>
+        <div class="cs-formula">${s.formula}</div>
+        <div class="cs-result" style="color:var(--text)">➜ ${s.result}</div>
+      </div>`).join('');
+  }
+
+  if (currentTab === 'view3d') {
+    render3D(P, geo);
+  }
+
+  if (currentTab === 'radiation') {
+    renderRadiationTab();
+  }
+
+}
+
+// ════════════════════════════════════════════════════════════
+// 3D RENDERER (pure Canvas — no Three.js dependency)
+// Isometric-style 3D with mouse orbit
+// ════════════════════════════════════════════════════════════
+let scene3d = null;
+
+function render3D(p, geo) {
+  const canvas = document.getElementById('canvas3d');
+  if (!canvas) return;
+
+  // Update info overlay
+  document.getElementById('info3d-tilt').textContent = `β: ${geo.effTilt}°`;
+  document.getElementById('info3d-az').textContent = `Az: ${geo.effAz}°`;
+  document.getElementById('info3d-roof').textContent = `roof: ${p.roofAlong>0?'+':''}${p.roofAlong}°/${p.roofCross>0?'+':''}${p.roofCross}°`;
+
+  if (!scene3d) {
+    scene3d = init3DScene(canvas);
+  }
+  draw3DScene(scene3d, p, geo);
+}
+
+function init3DScene(canvas) {
+  const ctx = canvas.getContext('2d');
+  let rotX = 0.38, rotY = -0.5; // initial view angles
+  let zoom = 2.8;               // start zoomed in so scene fills canvas
+  let dragging = false, lastX = 0, lastY = 0;
+  let dpr = window.devicePixelRatio || 1;
+
+  // Resize canvas — reset transform properly to avoid scale accumulation
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width  = Math.round(rect.width  * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    // DO NOT call ctx.scale here — we set it once per draw in draw3DScene
+    if (scene3d) draw3DScene(scene3d, window._p3d, window._geo3d);
+  }
+  resize();
+  new ResizeObserver(() => { setTimeout(resize, 30); }).observe(canvas);
+
+  canvas.addEventListener('mousedown',  e => { dragging=true; lastX=e.clientX; lastY=e.clientY; canvas.style.cursor='grabbing'; });
+  canvas.addEventListener('mousemove',  e => {
+    if (!dragging) return;
+    rotY += (e.clientX - lastX) * 0.008;
+    rotX += (e.clientY - lastY) * 0.008;
+    rotX = Math.max(-1.4, Math.min(1.4, rotX));
+    lastX=e.clientX; lastY=e.clientY;
+    if (scene3d) draw3DScene(scene3d, window._p3d, window._geo3d);
+  });
+  canvas.addEventListener('mouseup',    () => { dragging=false; canvas.style.cursor='grab'; });
+  canvas.addEventListener('mouseleave', () => { dragging=false; canvas.style.cursor='grab'; });
+  canvas.addEventListener('wheel',      e => {
+    e.preventDefault();
+    zoom *= e.deltaY > 0 ? 0.92 : 1.09;
+    zoom = Math.max(0.3, Math.min(3.5, zoom));
+    if (scene3d) draw3DScene(scene3d, window._p3d, window._geo3d);
+  }, { passive: false });
+
+  // Touch support
+  let lastTouchDist = 0;
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) { dragging=true; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; }
+    if (e.touches.length === 2) { lastTouchDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); }
+  });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 1 && dragging) {
+      rotY += (e.touches[0].clientX - lastX) * 0.01;
+      rotX += (e.touches[0].clientY - lastY) * 0.01;
+      rotX = Math.max(-1.4, Math.min(1.4, rotX));
+      lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+      if (scene3d) draw3DScene(scene3d, window._p3d, window._geo3d);
+    }
+    if (e.touches.length === 2) {
+      const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      zoom *= d / lastTouchDist; zoom = Math.max(0.3, Math.min(3.5, zoom));
+      lastTouchDist = d;
+      if (scene3d) draw3DScene(scene3d, window._p3d, window._geo3d);
+    }
+  }, { passive: false });
+  canvas.addEventListener('touchend', () => { dragging=false; });
+
+  return { ctx, canvas, get rotX() { return rotX; }, get rotY() { return rotY; }, get zoom() { return zoom; } };
+}
+
+function draw3DScene(sc, p, geo) {
+  if (!p || !geo) return;
+  window._p3d = p; window._geo3d = geo;
+
+  const { ctx, canvas } = sc;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.width  / dpr;
+  const H = canvas.height / dpr;
+  // Reset transform and apply dpr scale cleanly each frame
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  // ── 3D math helpers ──────────────────────────────────────
+  // Rotation matrices: rotX (pitch) then rotY (yaw)
+  const cx = Math.cos(sc.rotX), sx = Math.sin(sc.rotX);
+  const cy = Math.cos(sc.rotY), sy = Math.sin(sc.rotY);
+
+  function project3D(x, y, z) {
+    // Rotate Y then X
+    const x1 = x*cy - z*sy;
+    const z1 = x*sy + z*cy;
+    const y1 = y*cx - z1*sx;
+    const z2 = y*sx + z1*cx;
+    // Perspective projection — fov scaled to canvas width so fills screen
+    const fov = Math.min(W, H) * 0.8 * sc.zoom;
+    const dist = 4.0;
+    const scale = fov / (dist + z2 * 0.2);
+    return { sx: W/2 + x1*scale, sy: H/2 - y1*scale, z: z2 };
+  }
+
+  function polygon3D(pts3d, fill, stroke, lineW) {
+    if (!pts3d.length) return;
+    const proj = pts3d.map(([x,y,z]) => project3D(x,y,z));
+    ctx.beginPath();
+    ctx.moveTo(proj[0].sx, proj[0].sy);
+    for (let i=1; i<proj.length; i++) ctx.lineTo(proj[i].sx, proj[i].sy);
+    ctx.closePath();
+    if (fill)   { ctx.fillStyle = fill;   ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lineW||1; ctx.stroke(); }
+  }
+
+  function line3D(p1, p2, color, w) {
+    const a = project3D(...p1), b = project3D(...p2);
+    ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy);
+    ctx.strokeStyle = color; ctx.lineWidth = w||1; ctx.stroke();
+  }
+
+  function text3D(pos, txt, color, size) {
+    const pr = project3D(...pos);
+    const fs = size || 11;
+    ctx.font = `bold ${fs}px 'Space Mono',monospace`;
+    ctx.textAlign = 'center';
+    // Background pill for readability
+    const tw = ctx.measureText(txt).width;
+    const pad = 3;
+    ctx.fillStyle = 'rgba(6,14,24,0.75)';
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(pr.sx-tw/2-pad, pr.sy-fs+1, tw+pad*2, fs+4, 3)
+                  : ctx.rect(pr.sx-tw/2-pad, pr.sy-fs+1, tw+pad*2, fs+4);
+    ctx.fill();
+    ctx.fillStyle = color;
+    ctx.fillText(txt, pr.sx, pr.sy);
+  }
+
+  // ── Scene units: 1 unit = 500mm ──────────────────────────
+  const U = 1/500;
+  const rows = p.rows, cols = p.cols;
+  const pW = p.panelW * U;       // panel width
+  const pH = p.panelH * U;       // panel height (along slope)
+  const pitch = geo.rowPitch * U;
+  const totalW = cols * pW;
+  const totalD = (rows-1)*pitch + pH * Math.cos(parseFloat(geo.effTilt)*D);
+
+  // Roof tilt angles
+  const rA = p.roofAlong * D;    // slope along panel azimuth (degrees→rad)
+  const rC = p.roofCross * D;    // slope perpendicular
+  const beta = parseFloat(geo.effTilt) * D;  // effective panel tilt from horizontal
+
+  // Panel azimuth: rotate scene so panels face their azimuth direction
+  const panelAzRad = (p.panelAz - 180) * D; // 0=south=facing -Z in our coord
+
+  // ── Build roof surface ────────────────────────────────────
+  // Roof extends somewhat beyond panel array
+  const margin = 0.6;
+  const rW = totalW + margin*2;
+  const rD = totalD + margin*2;
+  const roofOx = -rW/2, roofOz = -rD/2 - margin*0.3;
+
+  // Transform a point on the tilted roof surface:
+  // The roof slopes by rA along Z (panel direction) and rC along X (cross direction)
+  function roofPt(lx, lz) {
+    // local coords on roof plane → world XYZ
+    const x = lx;
+    const z = lz;
+    const y = -lx * Math.sin(rC) - lz * Math.sin(rA); // height from tilt
+    return [x, y, z];
+  }
+
+  // Rotate a world point by panel azimuth around Y axis
+  function azRot(pt) {
+    const [x,y,z] = pt;
+    return [
+      x*Math.cos(panelAzRad) + z*Math.sin(panelAzRad),
+      y,
+      -x*Math.sin(panelAzRad) + z*Math.cos(panelAzRad),
+    ];
+  }
+
+  const roofCorners = [
+    azRot(roofPt(roofOx,        roofOz)),
+    azRot(roofPt(roofOx + rW,   roofOz)),
+    azRot(roofPt(roofOx + rW,   roofOz + rD)),
+    azRot(roofPt(roofOx,        roofOz + rD)),
+  ];
+
+  // ── Background gradient ───────────────────────────────────
+  const grd = ctx.createRadialGradient(W/2, H/2, 10, W/2, H/2, Math.max(W,H)*0.7);
+  grd.addColorStop(0, '#0f1e35');
+  grd.addColorStop(1, '#060e18');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Ground shadow ─────────────────────────────────────────
+  polygon3D([[-3,-1.1,-3],[ 3,-1.1,-3],[ 3,-1.1, 3],[-3,-1.1, 3]], 'rgba(0,0,0,0.25)', null);
+
+  // ── Roof surface ──────────────────────────────────────────
+  polygon3D(roofCorners, '#1a2d3a', '#2a4060', 1.5);
+
+  // Roof grid lines
+  ctx.setLineDash([4,6]);
+  for (let i=1; i<4; i++) {
+    const fx = i/4;
+    line3D(azRot(roofPt(roofOx+rW*fx, roofOz)), azRot(roofPt(roofOx+rW*fx, roofOz+rD)), '#1e3a5f', 0.5);
+  }
+  for (let i=1; i<4; i++) {
+    const fz = i/4;
+    line3D(azRot(roofPt(roofOx, roofOz+rD*fz)), azRot(roofPt(roofOx+rW, roofOz+rD*fz)), '#1e3a5f', 0.5);
+  }
+  ctx.setLineDash([]);
+
+  // ── Roof edge highlight ───────────────────────────────────
+  for (let i=0; i<4; i++) {
+    line3D(roofCorners[i], roofCorners[(i+1)%4], '#334155', 1.5);
+  }
+
+  // ── Panels — Painter's algorithm (back-to-front depth sort) ──────────────
+  // Build all panel data first, then sort by projected depth, then draw.
+  const startX = -totalW/2;
+  const startZ = -((rows-1)*pitch/2 + pH*Math.cos(beta)/2);
+
+  const projD_l = pH * Math.cos(beta);
+  const projH_l = pH * Math.sin(beta);
+
+  function panelCorner(lx, lz, dx, dz_flat, dy) {
+    const wx = lx + dx;
+    const wz = lz + dz_flat;
+    const wy = dy - wx * Math.sin(rC) - wz * Math.sin(rA);
+    return azRot([wx, wy, wz]);
+  }
+
+  // Collect all panels with their depth key (projected z of center)
+  const panelList = [];
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const lx = startX + col * pW;
+      const lz = startZ + row * pitch;
+      // Center point for depth sorting
+      const cx3 = lx + pW/2;
+      const cz3 = lz + projD_l/2;
+      const cy3 = projH_l/2 - cx3*Math.sin(rC) - cz3*Math.sin(rA);
+      const centerWorld = azRot([cx3, cy3, cz3]);
+      const depthZ = project3D(...centerWorld).z;
+      panelList.push({ row, col, lx, lz, depthZ });
+    }
+  }
+  // Sort: highest z (farthest from camera) first → drawn first → behind closer panels
+  panelList.sort((a, b) => b.depthZ - a.depthZ);
+
+  const brightness = 0.55 + 0.35 * Math.sin(beta);
+  const pr3 = Math.round(40  * brightness);
+  const pg3 = Math.round(100 * brightness);
+  const pb3 = Math.round(200 * brightness);
+  const panelFill = `rgb(${pr3},${pg3},${pb3})`;
+  const panelEdge = '#60a5fa';
+
+  for (const { lx, lz } of panelList) {
+    const bl = panelCorner(lx, lz, 0,   0,       0);
+    const br = panelCorner(lx, lz, pW,  0,       0);
+    const tr = panelCorner(lx, lz, pW,  projD_l, projH_l);
+    const tl = panelCorner(lx, lz, 0,   projD_l, projH_l);
+
+    // Panel face
+    polygon3D([bl,br,tr,tl], panelFill, panelEdge, 1.2);
+
+    // Cell grid lines
+    ctx.globalAlpha = 0.28;
+    const cellCols = 6, cellRows = 10;
+    for (let ci = 1; ci < cellCols; ci++) {
+      const fx = ci/cellCols;
+      line3D(
+        [bl[0]+fx*(br[0]-bl[0]), bl[1]+fx*(br[1]-bl[1]), bl[2]+fx*(br[2]-bl[2])],
+        [tl[0]+fx*(tr[0]-tl[0]), tl[1]+fx*(tr[1]-tl[1]), tl[2]+fx*(tr[2]-tl[2])],
+        '#93c5fd', 0.4
+      );
+    }
+    for (let ri = 1; ri < cellRows; ri++) {
+      const fy = ri/cellRows;
+      line3D(
+        [bl[0]+fy*(tl[0]-bl[0]), bl[1]+fy*(tl[1]-bl[1]), bl[2]+fy*(tl[2]-bl[2])],
+        [br[0]+fy*(tr[0]-br[0]), br[1]+fy*(tr[1]-br[1]), br[2]+fy*(tr[2]-br[2])],
+        '#93c5fd', 0.4
+      );
+    }
+    ctx.globalAlpha = 1;
+
+    // Outline
+    polygon3D([bl,br,tr,tl], null, panelEdge, 1.5);
+
+    // Mounting legs
+    const blR = panelCorner(lx, lz, 0,  0,       0);
+    const brR = panelCorner(lx, lz, pW, 0,       0);
+    const tlR = panelCorner(lx, lz, 0,  projD_l, 0);
+    const trR = panelCorner(lx, lz, pW, projD_l, 0);
+    line3D(blR, bl, '#475569', 1);
+    line3D(brR, br, '#475569', 1);
+    line3D(tlR, tl, '#475569', 1.5);
+    line3D(trR, tr, '#475569', 1.5);
+  }
+
+  // ── Sun position indicator ────────────────────────────────
+  // Show sun at solstice noon (simplified)
+  const sunElev = parseFloat(geo.sunElev) * D;
+  const sunAzRad = (parseFloat(geo.effAz) - 180) * D; // roughly south
+  const sunDist = 2.2;
+  const sunX = sunDist * Math.sin(sunAzRad + panelAzRad) * Math.cos(sunElev);
+  const sunY = sunDist * Math.sin(sunElev) + 0.2;
+  const sunZ = -sunDist * Math.cos(sunAzRad + panelAzRad) * Math.cos(sunElev);
+
+  // Sun glow
+  const sunProj = project3D(sunX, sunY, sunZ);
+  const grdSun = ctx.createRadialGradient(sunProj.sx, sunProj.sy, 2, sunProj.sx, sunProj.sy, 22);
+  grdSun.addColorStop(0, 'rgba(253,230,138,0.9)');
+  grdSun.addColorStop(0.4, 'rgba(251,191,36,0.5)');
+  grdSun.addColorStop(1, 'rgba(251,191,36,0)');
+  ctx.beginPath(); ctx.arc(sunProj.sx, sunProj.sy, 22, 0, Math.PI*2);
+  ctx.fillStyle = grdSun; ctx.fill();
+  ctx.beginPath(); ctx.arc(sunProj.sx, sunProj.sy, 8, 0, Math.PI*2);
+  ctx.fillStyle = '#fde68a'; ctx.fill();
+  ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // Sun ray to center panel
+  const centerPanelPt = azRot(roofPt(0, startZ + (rows-1)*pitch/2));
+  ctx.setLineDash([6,5]);
+  line3D([sunX, sunY, sunZ], centerPanelPt, 'rgba(251,191,36,0.5)', 1.2);
+  ctx.setLineDash([]);
+
+  // ── North arrow ───────────────────────────────────────────
+  const northDir = azRot([0, 0.01, -1.8]);
+  const northBase = azRot([0, 0.01, 0]);
+  line3D(northBase, northDir, '#ef4444', 2);
+  text3D(northDir, 'N', '#ef4444', 12);
+
+  // ── Slope angle arcs (visual indicator) ──────────────────
+  if (Math.abs(p.roofAlong) > 0.5) {
+    // draw a small arc showing roof slope on the side
+    const arcPts = [];
+    for (let a = 0; a <= Math.abs(rA); a += 0.05) {
+      const aa = rA < 0 ? -a : a;
+      arcPts.push(azRot(roofPt(startX - 0.3, startZ + Math.cos(aa)*0.35)));
+    }
+    if (arcPts.length >= 2) {
+      ctx.beginPath();
+      const ap0 = project3D(...arcPts[0]);
+      ctx.moveTo(ap0.sx, ap0.sy);
+      for (let i=1; i<arcPts.length; i++) {
+        const ap = project3D(...arcPts[i]);
+        ctx.lineTo(ap.sx, ap.sy);
+      }
+      ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 2; ctx.setLineDash([]); ctx.stroke();
+    }
+  }
+
+  // ── Labels ───────────────────────────────────────────────
+  const _projD = pH * Math.cos(beta);
+  const labelPt = azRot(roofPt(startX - 0.25, startZ + _projD * 0.5));
+  text3D([labelPt[0], labelPt[1]+0.22, labelPt[2]], `β=${geo.effTilt}°`, '#f97316', 12);
+
+  // Row pitch label
+  if (p.rows > 1) {
+    const pitchLabelPt = azRot(roofPt(startX + totalW + 0.15, startZ + pitch * 0.5));
+    text3D([pitchLabelPt[0], pitchLabelPt[1]+0.05, pitchLabelPt[2]], `R=${geo.rowPitch}mm`, '#1abc9c', 10);
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════
+// RADIATION TAB RENDERER
+// ════════════════════════════════════════════════════════════
+function renderRadiationTab() {
+  const el = document.getElementById('rad-content');
+  if (!el) return;
+
+  // pvgisRadData is now { tilted: number[]|null, horiz: number[]|null }
+  if (!pvgisRadData) {
+    el.innerHTML = `<div style="padding:20px;color:var(--text3);font-size:13px;text-align:center;border:1px dashed var(--border);border-radius:10px;margin:10px 0">
+      ${t('radNoData')}
+    </div>`;
+    return;
+  }
+
+  const labels = MN; // uses current-language MN array
+
+  // Parse MRcalc fields
+  // MRcalc v5_2 fields: H_sun (horizontal), H(i) (tilted), Hd (diffuse), etc.
+  // Debug: log all fields from first record
+  // pvgisRadData = { tilted: number[]|null, horiz: number[]|null }
+  const tiltArr  = pvgisRadData.tilted;
+  const horizArr = pvgisRadData.horiz;
+  
+  // Values are already monthly totals (kWh/m²/month), converted in loadPVGISRadiation()
+  const monthly = labels.map((month, i) => ({
+    month,
+    horiz:  horizArr ? Math.round((horizArr[i] ?? 0) * 10) / 10 : 0,
+    tilted: tiltArr  ? Math.round((tiltArr[i]  ?? 0) * 10) / 10 : 0,
+  }));
+
+  const maxH = Math.max(...monthly.map(m => Math.max(m.horiz, m.tilted)), 1);
+
+  // Build dual bar chart HTML
+  function dualBar(data, color1, color2) {
+    return data.map(m => {
+      const h1 = Math.round((m.horiz  / maxH) * 148);
+      const h2 = Math.round((m.tilted / maxH) * 148);
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:1px">
+        <div style="font-size:8px;color:${color2};font-family:'Space Mono',monospace;white-space:nowrap">${m.tilted.toFixed(0)}</div>
+        <div style="display:flex;align-items:flex-end;gap:1px;width:100%">
+          <div style="flex:1;height:${h1}px;background:${color1};opacity:0.7;border-radius:2px 2px 0 0;transition:height .3s"></div>
+          <div style="flex:1;height:${h2}px;background:${color2};opacity:0.85;border-radius:2px 2px 0 0;transition:height .3s"></div>
+        </div>
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">${m.month}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Totals
+  const totalHoriz  = monthly.reduce((s,m)=>s+m.horiz,  0);
+  const totalTilted = monthly.reduce((s,m)=>s+m.tilted, 0);
+  const gain = totalHoriz > 0 ? ((totalTilted - totalHoriz) / totalHoriz * 100).toFixed(1) : '—';
+
+  // Monthly table rows
+  const tableRows = monthly.map((m, i) => {
+    const diffVal = m.tilted - m.horiz;
+    const diffColor = diffVal >= 0 ? '#22c55e' : '#f87171';
+    return `<tr>
+      <td style="color:var(--text);font-weight:600;padding:5px 8px">${m.month}</td>
+      <td style="color:var(--blue);text-align:right;padding:5px 8px;font-family:'Space Mono',monospace">${m.horiz.toFixed(1)}</td>
+      <td style="color:#38bdf8;text-align:right;padding:5px 8px;font-family:'Space Mono',monospace;font-weight:700">${m.tilted.toFixed(1)}</td>
+      <td style="color:${diffColor};text-align:right;padding:5px 8px;font-family:'Space Mono',monospace">${diffVal>=0?'+':''}${diffVal.toFixed(1)}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="margin-bottom:14px">
+      <div style="font-size:14px;font-weight:800;color:var(--blue2);margin-bottom:4px">${t('radTitle')}</div>
+      <div style="color:var(--text3);font-size:11px">PVGIS MRcalc · ${document.getElementById('pvgis-year').value} · β=${document.getElementById('pvgis-tilt').value}° Az=${document.getElementById('pvgis-az').value}° · ${P.lat.toFixed(4)}°N ${P.lon.toFixed(4)}°E</div>
+    </div>
+
+    <!-- KPI strip -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      <div style="background:var(--bg4);border-radius:8px;padding:12px;text-align:center;border-left:3px solid var(--blue)">
+        <div style="color:var(--text3);font-size:11px;margin-bottom:4px">${t('radHoriz')}</div>
+        <div style="color:var(--blue);font-size:18px;font-weight:800;font-family:'Space Mono',monospace">${totalHoriz.toFixed(0)}</div>
+        <div style="color:var(--text3);font-size:10px">kWh/m²/yr</div>
+      </div>
+      <div style="background:var(--bg4);border-radius:8px;padding:12px;text-align:center;border-left:3px solid #38bdf8">
+        <div style="color:var(--text3);font-size:11px;margin-bottom:4px">${t('radTilted')}</div>
+        <div style="color:#38bdf8;font-size:18px;font-weight:800;font-family:'Space Mono',monospace">${totalTilted.toFixed(0)}</div>
+        <div style="color:var(--text3);font-size:10px">kWh/m²/yr</div>
+      </div>
+      <div style="background:var(--bg4);border-radius:8px;padding:12px;text-align:center;border-left:3px solid var(--green)">
+        <div style="color:var(--text3);font-size:11px;margin-bottom:4px">${t('radColDiff')}</div>
+        <div style="color:var(--green);font-size:18px;font-weight:800;font-family:'Space Mono',monospace">+${gain}%</div>
+        <div style="color:var(--text3);font-size:10px">tilted vs horiz.</div>
+      </div>
+    </div>
+
+    <!-- Dual bar chart -->
+    <div style="background:var(--bg4);border-radius:10px;padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px">${t('radTitle')}</div>
+      <div style="display:flex;align-items:flex-end;gap:3px;height:160px">
+        ${dualBar(monthly, 'var(--blue)', '#38bdf8')}
+      </div>
+      <div style="display:flex;gap:16px;justify-content:flex-end;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:5px">
+          <div style="width:14px;height:10px;background:var(--blue);opacity:0.7;border-radius:2px"></div>
+          <span style="font-size:11px;color:var(--text3)">${t('radHoriz')}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <div style="width:14px;height:10px;background:#38bdf8;opacity:0.85;border-radius:2px"></div>
+          <span style="font-size:11px;color:var(--text3)">${t('radTilted')}</span>
+        </div>
+      </div>
+      <div style="text-align:right;color:var(--text3);font-size:11px;margin-top:4px">${t('radUnit')}</div>
+    </div>
+
+    <!-- Monthly table -->
+    <div style="background:var(--bg4);border-radius:10px;padding:14px;overflow-x:auto">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">📋 ${t('radColMonth')} — kWh/m²</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:5px 8px;color:var(--text3);font-weight:600">${t('radColMonth')}</th>
+            <th style="text-align:right;padding:5px 8px;color:var(--blue);font-weight:600">${t('radColHoriz')}</th>
+            <th style="text-align:right;padding:5px 8px;color:#38bdf8;font-weight:600">${t('radColTilted')}</th>
+            <th style="text-align:right;padding:5px 8px;color:var(--green);font-weight:600">${t('radColDiff')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+          <tr style="border-top:2px solid var(--border);background:var(--bg3)">
+            <td style="color:var(--text);font-weight:800;padding:6px 8px">${t('radYear')}</td>
+            <td style="color:var(--blue);text-align:right;padding:6px 8px;font-family:'Space Mono',monospace;font-weight:700">${totalHoriz.toFixed(0)}</td>
+            <td style="color:#38bdf8;text-align:right;padding:6px 8px;font-family:'Space Mono',monospace;font-weight:700">${totalTilted.toFixed(0)}</td>
+            <td style="color:var(--green);text-align:right;padding:6px 8px;font-family:'Space Mono',monospace;font-weight:700">+${gain}%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════════
+// GLOBAL UPDATE
+// ════════════════════════════════════════════════════════════
+function update() {
+  const geo = calcGeometry(P);
+  const yld = calcYield(P);
+  const pvgisM = getPVGISMonthly();
+
+  const activeTotal = pvgisM
+    ? (pvgisData.outputs.totals?.fixed?.E_y ?? pvgisM.reduce((s,m)=>s+m.kwh,0))
+    : yld.totalYield;
+
+  // Header
+  document.getElementById('hdr-total').textContent = Math.round(activeTotal).toLocaleString();
+  document.getElementById('hdr-panels').textContent = yld.nPanels + ' ' + t('hdrPanels');
+  document.getElementById('hdr-kwp').textContent = yld.peakPowerKw.toFixed(2);
+  const srcEl = document.getElementById('hdr-source');
+  srcEl.textContent = pvgisM ? t('srcPVGIS') : t('srcModel');
+  srcEl.className = `source-badge ${pvgisM ? 'source-pvgis' : 'source-model'}`;
+
+  // Effective values
+  document.getElementById('eff-tilt-disp').textContent = `${geo.effTilt}°`;
+  document.getElementById('eff-tilt').textContent = `${geo.effTilt}°`;
+  document.getElementById('eff-az').textContent = `${geo.effAz}°`;
+  const betaAbsEl = document.getElementById('lbl-beta-abs');
+  if (betaAbsEl) betaAbsEl.textContent = `${geo.effTilt}°`;
+
+  // Matrix
+  document.getElementById('m-count').textContent = `${P.rows*P.cols} ${t('pcs')}`;
+  document.getElementById('m-kwp').textContent = `${yld.peakPowerKw.toFixed(2)} kWp`;
+  document.getElementById('m-area').textContent = `${yld.totalArea} m²`;
+
+  // Spacing display
+  const dispMinGap = document.getElementById('disp-minGap');
+  if (dispMinGap) dispMinGap.textContent = P.minGap;
+  const autoPitchEl = document.getElementById('disp-rowPitch-auto');
+  if (autoPitchEl) autoPitchEl.textContent = `auto: ${geo.autoPitch} mm`;
+  const calcEl = document.getElementById('geo-rowPitch-calc');
+  if (calcEl) calcEl.textContent = `${geo.autoPitch} mm`;
+  const usedEl = document.getElementById('geo-rowPitch-used');
+  if (usedEl) usedEl.textContent = `${geo.rowPitch} mm${P.rowPitchOverride ? ' ✎' : ' (auto)'}`;
+  const gapEl = document.getElementById('geo-gap-used');
+  if (gapEl) gapEl.textContent = `${geo.freeGap} mm`;
+
+  // Geo results
+  const geoRows = [
+    [t('geoSunElev'), `${geo.sunElev}°`, '#fbbf24'],
+    [t('geoEffTilt'), `${geo.effTilt}°`, '#9b59b6'],
+    [t('geoBetaRoof'), `${P.panelTiltRel.toFixed?P.panelTiltRel.toFixed(1):P.panelTiltRel}°`, '#f97316'],
+    [t('geoEffAz'), `${geo.effAz}°`, '#f59e0b'],
+    [t('geoProjH'), `${geo.projH} mm`, '#2ecc71'],
+    [t('geoProjD'), `${geo.projD} mm`, '#9b59b6'],
+    [t('geoAutoR'), `${geo.autoPitch} mm`, '#64748b'],
+    [t('geoUsedR'), `${geo.rowPitch} mm${P.rowPitchOverride?' ✎':''}`, '#1abc9c'],
+    [t('geoGap'), `${geo.freeGap} mm`, '#3498db'],
+    [t('geoDepth'), `${(geo.totalDepth/1000).toFixed(2)} m`, '#e74c3c'],
+    [t('geoWidth'), `${(geo.totalWidth/1000).toFixed(2)} m`, '#e74c3c'],
+    [t('geoAzCorr'), `${yld.azFactor}%`, '#f59e0b'],
+  ];
+  document.getElementById('geo-rows').innerHTML = geoRows.map(([l,v,c])=>
+    `<div class="geo-row"><span class="gl">${l}</span><span class="gv" style="color:${c}">${v}</span></div>`).join('')
+    + `<div style="color:#64748b;font-size:9px;margin-top:5px;line-height:1.4">⚡ ${yld.shadingNote}</div>`;
+
+  // PVGIS info
+  updatePVGISInfo();
+
+  // Tab content
+  renderCurrentTab();
+}
+
+// boot() called after Leaflet is confirmed ready
+function boot() {
+  refreshMN();
+  initMap();
+  initCompass();
+  applyLang();
+  update();
+  ['pvgis-tilt','pvgis-az','pvgis-year'].forEach(id => {
+    document.getElementById(id).addEventListener('change', updatePVGISInfo);
+  });
+}
+</script>
+
+<!-- Leaflet MUST load after our app script so L is defined when boot() runs -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onload="boot()"></script>
+</body>
+</html>
