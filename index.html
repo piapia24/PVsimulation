@@ -1857,7 +1857,9 @@ function renderCurrentTab() {
        [t('yieldEffBAz'), `${geo.effTilt}° / ${geo.effAz}°`, '#f59e0b'],
       ].map(([l,v,c])=>`<div class="kpi-card"><div class="kpi-lbl">${l}</div><div class="kpi-val" style="color:${c}">${v}</div></div>`).join('');
 
-    const irrData = pvgisM ? pvgisM.map(m=>({month:m.month,irr:m.irr})) : yld.monthlyIrr;
+    //const irrData = pvgisM ? pvgisM.map(m=>({month:m.month,irr:m.irr})) : yld.monthlyIrr;
+    const irrData = (pvgisRadData && pvgisRadData.tilted) ? pvgisRadData.tilted.map((v, i) => ({month: MN[i], irr: v})): yld.monthlyIrr;
+    
     document.getElementById('yield-charts').innerHTML =
       `<div class="chart-card">${barChart(activeYield.monthly, 'kwh', 'month', '#f59e0b', t('kwhPerMonth'), `${t('yieldProd')} (${srcTxt})`)}</div>
        <div class="chart-card">${barChart(irrData, 'irr', 'month', '#3b82f6', t('kwhPerM2'), t('yieldIrr'))}</div>`;
