@@ -1706,21 +1706,18 @@ function renderSideView(p, geo) {
 
 
 
-// Kierunek promienia (kąt elewacji)
-const dx1 = Math.cos(-sunRad);
-const dy1 = Math.sin(sunRad);
-  
-// Punkt startowy promienia (słońce)
-const sunxx = sx;
-const sunyy = sy;
 
+// Kierunek promienia słonecznego (bez kolizji z innymi dx/dy)
+const sunDirX = Math.cos(-sunRad);
+const sunDirY = Math.sin(sunRad);
 
-// Parametr t dla przecięcia z y = roofY
-const tAlpha = (roofY - sunyy) / dy1;
+// Parametr przecięcia z poziomem y = roofY
+const tAlpha = (roofY - sy) / sunDirY;
 
-// Punkt przecięcia promienia z poziomem (POPRAWNA BAZA α)
-const alphaBaseX = sx;
+// ✅ Poprawna baza kąta α
+const alphaBaseX = sx + sunDirX * tAlpha;
 const alphaBaseY = roofY;
+
 
 
   return `<svg viewBox="0 0 700 390" width="100%" style="display:block">
