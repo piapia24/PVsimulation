@@ -1744,7 +1744,7 @@ function renderTopView(p, geo) {
   const { rowPitch, projD, totalDepth, totalWidth } = geo;
   const scale = Math.min(590/(cols*panelW), 250/totalDepth, 0.26)*0.5;
   const s = mm => mm*scale;
-  const ox=52, oy=26;
+  const ox=90, oy=60;
   const colW=s(panelW), rowH=s(projD), pitch=s(rowPitch);
   const svgW=Math.max(ox+s(totalWidth)+130, 460);
   const svgH=Math.max(oy+s(totalDepth)+85, 250);
