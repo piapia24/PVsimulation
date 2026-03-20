@@ -1742,7 +1742,7 @@ function renderSideView(p, geo) {
 function renderTopView(p, geo) {
   const { rows, cols, panelW } = p;
   const { rowPitch, projD, totalDepth, totalWidth } = geo;
-  const scale = Math.min(590/(cols*panelW), 250/totalDepth, 0.26);
+  const scale = Math.min(590/(cols*panelW), 250/totalDepth, 0.26)*0.9;
   const s = mm => mm*scale;
   const ox=52, oy=26;
   const colW=s(panelW), rowH=s(projD), pitch=s(rowPitch);
