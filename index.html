@@ -1864,7 +1864,10 @@ function renderCurrentTab() {
       `<div class="chart-card">${barChart(activeYield.monthly, 'kwh', 'month', '#f59e0b', t('kwhPerMonth'), `${t('yieldProd')} (${srcTxt})`)}</div>
        <div class="chart-card">${barChart(irrData, 'irr', 'month', '#3b82f6', t('kwhPerM2'), t('yieldIrr'))}</div>`;
 
-    const irrDataFull = pvgisM || yld.monthlyIrr;
+    //const irrDataFull = pvgisM || yld.monthlyIrr;
+    
+    const irrDataFull = (pvgisRadData && pvgisRadData.tilted) ? pvgisRadData.tilted.map((v, i) => ({ irr: v })): yld.monthlyIrr;
+    
     document.getElementById('table-source').innerHTML = srcTxt;
     document.getElementById('table-source').className = `source-badge ${src}`;
     document.getElementById('yield-tbody').innerHTML =
