@@ -1705,6 +1705,10 @@ function renderSideView(p, geo) {
     `<line x1="${sx+17*Math.cos(a*D)}" y1="${sy+17*Math.sin(a*D)}" x2="${sx+23*Math.cos(a*D)}" y2="${sy+23*Math.sin(a*D)}" stroke="#f59e0b" stroke-width="1.5"/>`).join('');
 
   const dx = Math.cos(-sunRad);
+  
+// Parametr t dla przecięcia z y = roofY
+  const tAlpha = (roofY - sunY) / dy
+
   const alphaBaseX = sunX + dx * tAlpha;
   const alphaBaseY = roofY;
 
