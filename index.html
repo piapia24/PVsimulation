@@ -1704,6 +1704,10 @@ function renderSideView(p, geo) {
   const sunRays = [0,45,90,135,180,225,270,315].map(a =>
     `<line x1="${sx+17*Math.cos(a*D)}" y1="${sy+17*Math.sin(a*D)}" x2="${sx+23*Math.cos(a*D)}" y2="${sy+23*Math.sin(a*D)}" stroke="#f59e0b" stroke-width="1.5"/>`).join('');
 
+  
+  const alphaBaseX = r2.p1[0];
+  const alphaBaseY = roofY;
+
   return `<svg viewBox="0 0 700 390" width="100%" style="display:block">
     <defs>${markers}</defs>
     <line x1="0" y1="${roofSlopeY(0)}" x2="700" y2="${roofSlopeY(700)}" stroke="#334155" stroke-width="2.5"/>
